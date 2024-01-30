@@ -2,17 +2,15 @@ import argparse
 import logging
 import pathlib
 import time
+import os
 
 import gin
 
 from bounce.bounce import Bounce
-from bounce.util.data_loading import (
-    download_uci_data,
-    download_maxsat60_data,
-    download_maxsat125_data,
-)
+
 from bounce.util.printing import BColors, BOUNCE_NAME
 
+os.system('clear')
 
 if __name__ == "__main__":
 
@@ -22,17 +20,6 @@ if __name__ == "__main__":
     )
 
     logging.info(BOUNCE_NAME)
-
-    if not pathlib.Path("data/slice_localization_data.csv").exists():
-        download_uci_data()
-
-    if not pathlib.Path("data/maxsat/frb10-6-4.wcnf").exists():
-        download_maxsat60_data()
-
-    if not pathlib.Path(
-        "data/maxsat/cluster-expansion-IS1_5.0.5.0.0.5_softer_periodic.wcnf"
-    ).exists():
-        download_maxsat125_data()
 
     then = time.time()
     parser = argparse.ArgumentParser(
@@ -45,7 +32,7 @@ if __name__ == "__main__":
         "--gin-files",
         type=str,
         nargs="+",
-        default=["configs/default.gin"],
+        default=["configs/my.gin"],
         help="Path to the config file",
     )
     parser.add_argument(
@@ -60,6 +47,7 @@ if __name__ == "__main__":
     gin.parse_config_files_and_bindings(args.gin_files, args.gin_bindings)
 
     bounce = Bounce()
+    
     bounce.run()
 
     gin.clear_config()
