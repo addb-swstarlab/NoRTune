@@ -4,18 +4,18 @@ from bounce.util.benchmark import Parameter, ParameterType
 import gin
 import pandas as pd
 import torch
-
-
+import logging
 
 @gin.configurable
 class SparkTuning(Benchmark):
     def __init__(
         self,
         n_features: int = 45,
-        csv_path: str = '/path/to/data/csv'
-        # csv_path: str = '/home/jieun/bounce/data/Spark_3.1_45_parameters.csv'
+        csv_path: str = '/path/to/read/csv',
+        config_path: str = '/path/to/save/configuration'
     ):
         self.n_features = n_features
+        self.config_path = config_path
         csv_data = pd.read_csv(csv_path, index_col=0)
         self.dict_data = csv_data.to_dict(orient='index')
         
@@ -66,16 +66,15 @@ class SparkTuning(Benchmark):
         """
         the tensor used to flip the binary parameters
         """
+    
+    def save_configuration_file(self, x: torch.Tensor):
+        f = open(self.config_path, 'w')
         
-    def __call__(self, x: torch.Tensor) -> torch.Tensor:
-        # TODO: 1. Converting x with a Tensor type into the Spark configuration format.
-        x = x.squeeze()
-
-        x_wo_cat = x[:self.categorical_indices[0]]
         """
         Converting x without categorical variables into the Spark configuration format.
         Categorical variables must be treat different.
         """
+        x_wo_cat = x[:self.categorical_indices[0]]
         for i in range(len(x_wo_cat)):
             p = self.parameters[i].name
             v = x_wo_cat[i]
@@ -85,28 +84,40 @@ class SparkTuning(Benchmark):
                     v = self.parameters[i].items[v]
                 case ParameterType.CONTINUOUS:
                     v = torch.round(v, decimals=2)
-                    p_unit = st.parameters[i].unit
+                    p_unit = self.parameters[i].unit
                     if p_unit is not None:
                         v = str(v) + p_unit
                 case ParameterType.NUMERICAL:
                     v = int(v)
-                    p_unit = st.parameters[i].unit
+                    p_unit = self.parameters[i].unit
                     if p_unit is not None:
                         v = str(v) + p_unit
             
-            print(f'{p}={v}')
-            
-        start = st.categorical_indices[0]
-        for _ in st.categorical_indices:
-            end = start + st.parameters[_].dims_required
-            one_hot = tt[start:end]
+            f.writelines(f'{p}={v}\n')
+            logging.info(f'{p}={v}')
+        
+        """
+        Converting categorical variables in x into the Spark configuration format.
+        """    
+        start = self.categorical_indices[0]
+        for _ in self.categorical_indices:
+            end = start + self.parameters[_].dims_required
+            one_hot = x[start:end]
             cat = torch.argmax(one_hot)
-            p = st.parameters[_].name
-            v = st.parameters[_].items[cat]
+            p = self.parameters[_].name
+            v = self.parameters[_].items[cat]
             
-            print(f'{p}={v}')
+            f.writelines(f'{p}={v}\n')
+            logging.info(f'{p}={v}')
             start = end
-                
+        
+        f.close()
+         
+    def __call__(self, x: torch.Tensor) -> torch.Tensor:
+        x = x.squeeze()
+        # TODO: 1. Converting x with a Tensor type into the Spark configuration format.
+        # Complete!
+        self.save_configuration_file(x)
         assert False
         
         # TODO: 2. Transporting the created spark configuration to Spark master node to apply the configuration setting.
