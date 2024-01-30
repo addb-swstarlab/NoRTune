@@ -28,6 +28,7 @@ from bounce.util.data_handling import (
     sample_binary,
     sample_categorical,
     sample_continuous,
+    sample_numerical,
 )
 from bounce.util.printing import BColors
 
@@ -359,6 +360,13 @@ class Bounce:
                         number_of_samples=self.number_initial_points,
                         bins=bins_of_type,
                     )
+                ##########--------JIEUN--------##########
+                case ParameterType.NUMERICAL:
+                    _x_init = sample_numerical(
+                        number_of_samples=self.number_initial_points,
+                        bins=bins_of_type,
+                    )
+                #########################################
                 case ParameterType.CATEGORICAL:
                     _x_init = sample_categorical(
                         number_of_samples=self.number_initial_points,
@@ -372,18 +380,22 @@ class Bounce:
                     raise ValueError(f"Unknown parameter type {parameter_type}.")
             types_points_and_indices[parameter_type] = (_x_init, indices_of_type)
 
+        ##########--------JIEUN--------##########
         x_init = construct_mixed_point(
             size=self.number_initial_points,
             binary_indices=types_points_and_indices[ParameterType.BINARY][1],
             continuous_indices=types_points_and_indices[ParameterType.CONTINUOUS][1],
+            numerical_indices=types_points_and_indices[ParameterType.NUMERICAL][1],
             categorical_indices=types_points_and_indices[ParameterType.CATEGORICAL][1],
             ordinal_indices=types_points_and_indices[ParameterType.ORDINAL][1],
             x_binary=types_points_and_indices[ParameterType.BINARY][0],
             x_continuous=types_points_and_indices[ParameterType.CONTINUOUS][0],
+            x_numerical=types_points_and_indices[ParameterType.NUMERICAL][0],
             x_categorical=types_points_and_indices[ParameterType.CATEGORICAL][0],
             x_ordinal=types_points_and_indices[ParameterType.ORDINAL][0],
         )
-
+        #########################################
+        
         x_init_up = from_1_around_origin(
             x=self.random_embedding.project_up(x_init.T).T,
             lb=self.benchmark.lb_vec,
