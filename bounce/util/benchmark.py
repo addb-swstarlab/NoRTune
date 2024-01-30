@@ -79,12 +79,15 @@ class ParameterType(Enum):
     The type of a parameter
     """
 
+    NUMERICAL = "numerical"
     CONTINUOUS = "continuous"
     BINARY = "binary"
     CATEGORICAL = "categorical"
     ORDINAL = "ordinal"
 
 
+##########--------JIEUN--------##########
+## Add units and items for categorical original data
 @dataclass
 class Parameter:
     """
@@ -103,6 +106,8 @@ class Parameter:
     type: ParameterType
     lower_bound: float
     upper_bound: float
+    items: list = None
+    unit: str = None
     random_sign: int = None
     n_realizations: float | int = dataclasses.field(init=False)
 
@@ -111,6 +116,7 @@ class Parameter:
             if (
                 self.type == ParameterType.BINARY
                 or self.type == ParameterType.CONTINUOUS
+                or self.type == ParameterType.NUMERICAL
             ):
                 self.random_sign = random.choice([-1, 1])
             elif self.type == ParameterType.CATEGORICAL:
@@ -133,6 +139,8 @@ class Parameter:
             assert (
                 self.lower_bound < self.upper_bound
             ), "Categorical parameters must have lower bound < upper bound"
+            if self.items is not None:
+                assert isinstance(self.items, list), "Items of categorical values must be a list type"
             self.n_realizations = int(self.upper_bound - self.lower_bound + 1)
         elif self.type == ParameterType.ORDINAL:
             assert float(
@@ -152,12 +160,24 @@ class Parameter:
                 -1,
                 1,
             ], "Binary parameters must have random sign in [-1, 1]"
+            if self.items is not None:
+                assert isinstance(self.items, list), "Items of binary values must be a list type"
             self.n_realizations = 2
         elif self.type == ParameterType.CONTINUOUS:
             assert (
                 self.lower_bound < self.upper_bound
             ), "Continuous parameters must have lower bound < upper bound"
             self.n_realizations = float("inf")
+            if self.items is not None:
+                assert isinstance(self.items, list), "Items of continuous values must be a list type"
+        elif self.type == ParameterType.NUMERICAL:
+            assert (
+                self.lower_bound < self.upper_bound
+            ), "Numerical parameters must have lower bound < upper bound"
+            if self.items is not None:
+                assert isinstance(self.items, list), "Items of numerical values must be a list type"
+            self.n_realizations = float("inf")
+##########################################
 
     @property
     def dims_required(self) -> int:
@@ -171,6 +191,10 @@ class Parameter:
         match self.type:
             case ParameterType.CONTINUOUS:
                 return 1
+            ##########--------JIEUN--------##########
+            case ParameterType.NUMERICAL:
+                return 1
+            #########################################
             case ParameterType.CATEGORICAL:
                 return self.n_realizations
             case ParameterType.ORDINAL:
@@ -179,3 +203,4 @@ class Parameter:
                 return 1
             case _:
                 raise ValueError(f"Unknown parameter type {self.type}")
+#########################################
