@@ -352,6 +352,24 @@ class Benchmark(ABC):
             ]
         )
 
+    ##########--------JIEUN--------##########        
+    @property
+    def numerical_indices(self) -> torch.Tensor:
+        """
+
+        Returns:
+            torch.Tensor: the indices of the continuous parameters
+
+        """
+        return torch.tensor(
+            [
+                i
+                for i, p in enumerate(self.parameters)
+                if p.type == ParameterType.NUMERICAL
+            ]
+        )
+    #########################################
+
     @property
     def unique_parameter_types(self) -> list[ParameterType]:
         """
