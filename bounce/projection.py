@@ -71,6 +71,10 @@ class Bin:
                 return f([p.dims_required for p in self.parameters])
             case ParameterType.CONTINUOUS:
                 return 1
+            ##########--------JIEUN--------##########
+            case ParameterType.NUMERICAL:
+                return 1
+            #########################################
             case ParameterType.ORDINAL:
                 return 1
             case ParameterType.BINARY:
@@ -111,6 +115,13 @@ class Bin:
                     output[:, start:end] = x * (
                         1 if low_sequency else parameter.random_sign
                     )
+                ##########--------JIEUN--------##########
+                case ParameterType.NUMERICAL:
+                    # for numerical parameters, we just copy the input and possibly flip the sign??
+                    output[:, start:end] = x * (
+                        1 if low_sequency else parameter.random_sign
+                    )
+                #########################################
                 case ParameterType.BINARY:
                     # for binary parameters, we just copy the input and possibly flip the sign
                     output[:, start:end] = x * (
@@ -295,6 +306,9 @@ class AxUS:
             if (
                 parameter_type == ParameterType.CONTINUOUS
                 or parameter_type == ParameterType.BINARY
+                ##########--------JIEUN--------##########
+                or parameter_type == ParameterType.NUMERICAL
+                #########################################
             ):
                 index_permutation = np.random.permutation(
                     torch.tensor(_parameter_type_indices),
