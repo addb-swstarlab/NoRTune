@@ -146,6 +146,33 @@ def sample_continuous(
     x_init = sobol.draw(number_of_samples).to(dtype=dtype) * 2 - 1
     return x_init
 
+##########--------JIEUN--------##########
+def sample_numerical(
+        number_of_samples: int,
+        bins: list['Bin'],
+        dtype: torch.dtype = torch.double,
+        seed: Optional[int] = None,
+):
+    """
+
+    Args:
+        number_of_samples: the number of samples
+        bins: the dimensionality of the samples
+        dtype: the dtype of the samples
+        seed: the seed for the random number generator
+
+    Returns:
+        the samples
+
+    """
+    for bin in bins:
+        assert bin.parameter_type == ParameterType.NUMERICAL, f"Parameter {bin.parameter} is not numerical."
+
+    sobol = SobolEngine(len(bins), scramble=True, seed=seed)
+    x_init = sobol.draw(number_of_samples).to(dtype=dtype) * 2 - 1
+    x_init = torch.round(x_init)
+    return x_init
+#########################################
 
 def sample_categorical(
         number_of_samples: int,
@@ -188,15 +215,18 @@ def sample_categorical(
 
     return x_init * 2 - 1
 
-
+##########--------JIEUN--------##########
+## ADD NUMERICAL VARIABLES ##############
 def construct_mixed_point(
         size: int,
         binary_indices: Optional[list] = None,
         continuous_indices: Optional[list] = None,
+        numerical_indices: Optional[list]=None,
         categorical_indices: Optional[list] = None,
         ordinal_indices: Optional[list] = None,
         x_binary: Optional[torch.Tensor] = None,
         x_continuous: Optional[torch.Tensor] = None,
+        x_numerical: Optional[torch.Tensor] = None,
         x_categorical: Optional[torch.Tensor] = None,
         x_ordinal: Optional[torch.Tensor] = None,
 ) -> torch.Tensor:
@@ -207,10 +237,12 @@ def construct_mixed_point(
         size: the number of points
         binary_indices: indices of the binary parameters
         continuous_indices: indices of the continuous parameters
+        numerical_indices: indices of the numerical parameters
         categorical_indices: indices of the categorical parameters
         ordinal_indices: indices of the ordinal parameters
         x_binary: the binary point
         x_continuous: the continuous point
+        x_numerical: the numerical point
         x_categorical: the categorical point
         x_ordinal: the ordinal point
 
@@ -220,11 +252,13 @@ def construct_mixed_point(
     """
 
     # any of the x_* can be None, but not all of them
-    assert x_binary is not None or x_continuous is not None or x_categorical is not None or x_ordinal is not None, 'All x_* are None'
+    assert x_binary is not None or x_continuous is not None or x_numerical is not None or x_categorical is not None or x_ordinal is not None, 'All x_* are None'
     if x_binary is not None:
         assert x_binary.size(0) == size, 'x_binary has wrong size'
     if x_continuous is not None:
         assert x_continuous.size(0) == size, 'x_continuous has wrong size'
+    if x_numerical is not None:
+        assert x_numerical.size(0) == size, 'x_numerical has wrong size'
     if x_categorical is not None:
         assert x_categorical.size(0) == size, 'x_categorical has wrong size'
     if x_ordinal is not None:
@@ -236,6 +270,9 @@ def construct_mixed_point(
     if x_continuous is not None:
         assert len(continuous_indices) > 0, 'Benchmark does not have continuous parameters but x_continuous is not None'
         assert x_continuous.size(1) == len(continuous_indices), 'x_continuous has wrong size'
+    if x_numerical is not None:
+        assert len(numerical_indices) > 0, 'Benchmark does not have numerical parameters but x_numerical is not None'
+        assert x_numerical.size(1) == len(numerical_indices), 'x_numerical has wrong size'
     if x_categorical is not None:
         assert len(
             categorical_indices
@@ -249,6 +286,7 @@ def construct_mixed_point(
         [
             len(binary_indices) if binary_indices is not None else 0,
             len(continuous_indices) if continuous_indices is not None else 0,
+            len(numerical_indices) if numerical_indices is not None else 0,
             len(categorical_indices) if categorical_indices is not None else 0,
             len(ordinal_indices) if ordinal_indices is not None else 0,
         ]
@@ -259,12 +297,15 @@ def construct_mixed_point(
         x[:, binary_indices] = x_binary
     if x_continuous is not None:
         x[:, continuous_indices] = x_continuous
+    if x_numerical is not None:
+        x[:, numerical_indices] = x_numerical
     if x_categorical is not None:
         x[:, categorical_indices] = x_categorical
     if x_ordinal is not None:
         x[:, ordinal_indices] = x_ordinal
 
     return x
+#########################################
 
 
 def parameter_types(
