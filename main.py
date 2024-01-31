@@ -1,15 +1,16 @@
 import argparse
 import logging
-import pathlib
 import time
 import os
 
 import gin
 
 from bounce.bounce import Bounce
-
 from bounce.util.printing import BColors, BOUNCE_NAME
 
+from envs.utils import get_logger
+
+logger = get_logger()
 os.system('clear')
 
 if __name__ == "__main__":
