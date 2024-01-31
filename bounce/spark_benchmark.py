@@ -22,6 +22,8 @@ class SparkTuning(Benchmark):
         csv_data = pd.read_csv(csv_path, index_col=0)
         self.dict_data = csv_data.to_dict(orient='index')
         
+        self.fail_conf_flag = False
+        
         self.discrete_parameters = [] # for boolean parameters
         self.continuous_parameters = [] # for float parameters
         self.numerical_parameters =  [] # for int parameters
@@ -112,19 +114,35 @@ class SparkTuning(Benchmark):
     def apply_configuration(self):
         logging.info("Applying created configuration to the remote Spark server..")
         os.system(f'scp {self.config_path} {p.MASTER_ADDRESS}:{p.MASTER_CONF_PATH}')
+        exit_code = os.system(f'ssh {p.MASTER_ADDRESS} "bash --noprofile --norc -c scripts/run_join.sh"')
+        if exit_code > 0:
+            logging.error("Failed benchmarking!!")
+            logging.error("UNVALID CONFIGURATION!!")
+            self.fail_conf_flag = True
+        else:
+            logging.info("Successflly finished benchmarking")
+            self.fail_conf_flag = False
     
-    # def get_results(self):
-    #     f = open(HIBENCH_REPORT_PATH, 'r')
-    #     report = f.readlines()
-    #     f.close()
+    def get_results(self):
+        logging.info("Getting result files..")
+        if self.fail_conf_flag:
+            duration = 10000
+            tps = 0.1
+        else:
+            os.system(f'ssh {p.MASTER_ADDRESS} "bash --noprofile --norc -c scripts/report_transport.sh"')
+            f = open(p.HIBENCH_REPORT_PATH, 'r')
+            report = f.readlines()
+            f.close()
+            
+            duration = report[-1].split()[-3]
+            tps = report[-1].split()[-2]
         
-    #     duration = report[-1].split()[-3]
-    #     tps = report[-1].split()[-2]
-        
-    #     return float(duration), float(tps)        
+        # return float(duration), float(tps)
+        return float(duration)
     
     
     def __call__(self, x: torch.Tensor) -> torch.Tensor:
+        # Minimizing results
         x = x.squeeze()
         # TODO: 1. Converting x with a Tensor type into the Spark configuration format.
         # Complete!
@@ -132,13 +150,17 @@ class SparkTuning(Benchmark):
         
         # TODO: 2. Transporting the created spark configuration to Spark master node to apply the configuration setting.
         # Complete!
-        self.apply_configuration()
-        assert False
+        self.apply_configuration()        
         
         # TODO: 3. Running HiBench to benchmark Spark with the configuration.
+        # TODO: 4. Receiving the performance results.
+        # Complete! But should separate functions..
+        res = self.get_results()
+        logging.info(f"!!!!!!!!!!!!!!Results:{res}!!!!!!!!!!!!!!")
         # self.run_benchmark()
         
-        # TODO: 4. Receiving the performance results.
+        return torch.tensor(res)
+        
         # res = self.get_results()
         # logging.info("########################")
         # logging.info(f"##### res: {self.res:.2f} ######")
