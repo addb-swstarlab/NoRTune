@@ -1,18 +1,21 @@
 from bounce.benchmarks import Benchmark
 from bounce.util.benchmark import Parameter, ParameterType
 
+import os
 import gin
 import pandas as pd
 import torch
 import logging
+
+import envs.params as p
 
 @gin.configurable
 class SparkTuning(Benchmark):
     def __init__(
         self,
         n_features: int = 45,
-        csv_path: str = '/path/to/read/csv',
-        config_path: str = '/path/to/save/configuration'
+        csv_path: str = p.SPARK_CONF_INFO_CSV_PATH,
+        config_path: str = p.SPARK_CONF_PATH
     ):
         self.n_features = n_features
         self.config_path = config_path
@@ -58,14 +61,7 @@ class SparkTuning(Benchmark):
         super().__init__(parameters=parameters, noise_std=None)
 
         self.flip = False
-        # self.train_x, self.train_y, self.test_x, self.test_y = load_uci_data(
-        #     n_features=n_features
-        # )
-
-        # self.flip_tensor = torch.tensor(RandomState(0).choice([0, 1], n_features))
-        """
-        the tensor used to flip the binary parameters
-        """
+        
     
     def save_configuration_file(self, x: torch.Tensor):
         f = open(self.config_path, 'w')
@@ -112,7 +108,22 @@ class SparkTuning(Benchmark):
             start = end
         
         f.close()
-         
+        
+    def apply_configuration(self):
+        logging.infO("Applying created configuration to the remote Spark server..")
+        os.system(f'scp {self.config_path} {p.MASTER_ADDRESS}:{p.MASTER_CONF_PATH}')
+    
+    # def get_results(self):
+    #     f = open(HIBENCH_REPORT_PATH, 'r')
+    #     report = f.readlines()
+    #     f.close()
+        
+    #     duration = report[-1].split()[-3]
+    #     tps = report[-1].split()[-2]
+        
+    #     return float(duration), float(tps)        
+    
+    
     def __call__(self, x: torch.Tensor) -> torch.Tensor:
         x = x.squeeze()
         # TODO: 1. Converting x with a Tensor type into the Spark configuration format.
@@ -121,8 +132,17 @@ class SparkTuning(Benchmark):
         assert False
         
         # TODO: 2. Transporting the created spark configuration to Spark master node to apply the configuration setting.
+        # Complete!
+        self.apply_configuration()
+        
         # TODO: 3. Running HiBench to benchmark Spark with the configuration.
+        # self.run_benchmark()
+        
         # TODO: 4. Receiving the performance results.
-        return 0
+        # res = self.get_results()
+        # logging.info("########################")
+        # logging.info(f"##### res: {self.res:.2f} ######")
+        # logging.info("########################")
+        
         
 
