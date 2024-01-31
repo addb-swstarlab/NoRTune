@@ -11,6 +11,6 @@ MASTER_ADDRESS = GCP_SPARK_MASTER_ADDRESS
 MASTER_CONF_PATH = os.path.join(HOME_PATH, 'HiBench/conf')
 # MASTER_BENCH_BASH = os.path.join(HOME_PATH, 'scripts/run_terasort.sh')
 
-# HIBENCH_REPORT_PATH = os.path.join(HOME_PATH, PROJECT_NAME, 'data/hibench.report')
+HIBENCH_REPORT_PATH = os.path.join(HOME_PATH, PROJECT_NAME, 'data/hibench.report')
 
 # INCUMBENTS_RESULTS_PATH = os.path.join(HOME_PATH, PROJECT_NAME, 'results')
