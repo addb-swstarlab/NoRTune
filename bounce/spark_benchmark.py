@@ -110,7 +110,7 @@ class SparkTuning(Benchmark):
         f.close()
         
     def apply_configuration(self):
-        logging.infO("Applying created configuration to the remote Spark server..")
+        logging.info("Applying created configuration to the remote Spark server..")
         os.system(f'scp {self.config_path} {p.MASTER_ADDRESS}:{p.MASTER_CONF_PATH}')
     
     # def get_results(self):
@@ -128,12 +128,12 @@ class SparkTuning(Benchmark):
         x = x.squeeze()
         # TODO: 1. Converting x with a Tensor type into the Spark configuration format.
         # Complete!
-        self.save_configuration_file(x)
-        assert False
+        self.save_configuration_file(x)       
         
         # TODO: 2. Transporting the created spark configuration to Spark master node to apply the configuration setting.
         # Complete!
         self.apply_configuration()
+        assert False
         
         # TODO: 3. Running HiBench to benchmark Spark with the configuration.
         # self.run_benchmark()
