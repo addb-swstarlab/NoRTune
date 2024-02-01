@@ -142,22 +142,34 @@ class SparkTuning(Benchmark):
     
     
     def __call__(self, x: torch.Tensor) -> torch.Tensor:
-        # Minimizing results
-        x = x.squeeze()
-        # TODO: 1. Converting x with a Tensor type into the Spark configuration format.
-        # Complete!
-        self.save_configuration_file(x)       
-        
-        # TODO: 2. Transporting the created spark configuration to Spark master node to apply the configuration setting.
-        # Complete!
-        self.apply_configuration()        
-        
-        # TODO: 3. Running HiBench to benchmark Spark with the configuration.
-        # TODO: 4. Receiving the performance results.
-        # Complete! But should separate functions..
-        res = self.get_results()
-        logging.info(f"!!!!!!!!!!!!!!Results:{res}!!!!!!!!!!!!!!")
-        # self.run_benchmark()
+        """
+        Minimizing results
+        Args:
+            x (torch.Tensor): generated configuration candidates. [num, n_features]
+
+        Returns:
+            torch.Tensor: _description_
+            
+        """
+        res = []
+        for x_ in x:
+            x_ = x_.squeeze()
+            # TODO: 1. Converting x with a Tensor type into the Spark configuration format.
+            # Complete!
+            self.save_configuration_file(x_)
+            
+            # TODO: 2. Transporting the created spark configuration to Spark master node to apply the configuration setting.
+            # Complete!
+            self.apply_configuration()        
+            
+            # TODO: 3. Running HiBench to benchmark Spark with the configuration.
+            # TODO: 4. Receiving the performance results.
+            # Complete! But should separate functions..
+            res_ = self.get_results()
+            logging.info(f"!!!!!!!!!!!!!!Results:{res_}!!!!!!!!!!!!!!")
+            res.append(res_)
+            
+            # self.run_benchmark()
         
         return torch.tensor(res)
         
