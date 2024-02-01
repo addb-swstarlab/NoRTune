@@ -343,10 +343,12 @@ def sample_initial_points_discrete(
         x_cand: the sampled initial points
 
     """
+    ##########--------JIEUN--------##########
     discrete_parameter_types = [
-        pt for pt in ParameterType if pt != ParameterType.CONTINUOUS
+        pt for pt in ParameterType if pt != ParameterType.CONTINUOUS and pt != ParameterType.NUMERICAL
     ]
-
+    #########################################
+    
     # copy x_center n_initial_points times
     x_cand = torch.repeat_interleave(x_center.unsqueeze(0), n_initial_points, dim=0)
 
