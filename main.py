@@ -13,8 +13,7 @@ from envs.utils import get_logger
 logger = get_logger()
 os.system('clear')
 
-if __name__ == "__main__":
-
+def main():
     logging.basicConfig(
         level=logging.INFO,
         format=f"{BColors.LIGHTGREY} %(levelname)s:%(asctime)s - (%(filename)s:%(lineno)d) - %(message)s {BColors.ENDC}",
@@ -53,4 +52,13 @@ if __name__ == "__main__":
 
     gin.clear_config()
     now = time.time()
-    logging.info(f"Total time: {now - then:.2f} seconds")
+    logger.info(f"Total time: {now - then:.2f} seconds")
+
+if __name__ == "__main__":
+    try:
+        main()
+    except:
+        logger.exception("ERROR!!")
+    else:
+        logger.handlers.clear()
+
