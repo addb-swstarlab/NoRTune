@@ -146,16 +146,21 @@ class Bounce:
                     raise ValueError(f"Unknown dtype {dtype}")
 
         # defining results directory
-        now = datetime.now()
-        gin_config_str = gin.config_str()
-        adler = zlib.adler32(gin_config_str.encode("utf-8"))
-
-        fname = now.strftime("%m-%d-%Y-%H:%M:%S:%f")
-        self.results_dir = os.path.join(results_dir, str(adler), fname)
-        """
-        the directory where the results will be stored
-        """
+        # now = datetime.now()
+        # gin_config_str = gin.config_str()
+        # adler = zlib.adler32(gin_config_str.encode("utf-8"))
+                
+        # fname = now.strftime("%m-%d-%Y-%H:%M:%S:%f")
+        # self.results_dir = os.path.join(results_dir, str(adler), fname)
+        # """
+        # the directory where the results will be stored
+        # """
+        
+        from envs.utils import get_foldername
+        self.results_dir = get_foldername(results_dir)
+        
         os.makedirs(self.results_dir, exist_ok=True)
+        
         # save gin config to file
         with open(os.path.join(self.results_dir, "gin_config.txt"), "w") as f:
             f.write(gin.config_str())
