@@ -1,0 +1,51 @@
+import bounce.bounce
+import bounce.trust_region
+import bounce.projection
+import bounce.gaussian_process
+import bounce.spark_benchmark
+import random_search.spark
+import torch
+
+# Macros
+
+FUNCTION_DIMENSIONALITY = 45
+EVALUATION_BUDGET = 100
+DTYPE = "float64"
+DEVICE = "cpu"
+
+Benchmark.flip = False
+
+# GP config
+
+get_gp.lengthscale_prior_shape = 1.5
+get_gp.lengthscale_prior_rate = 0.1
+get_gp.outputscale_prior_shape = 1.5
+get_gp.outputscale_prior_rate = 0.5
+get_gp.noise_prior_shape = 1.1
+get_gp.noise_prior_rate=0.05
+
+# TR config
+
+TrustRegion.length_init_discrete = 10
+
+# SparkTuning config
+
+SparkTuning.n_features = 45
+
+# Random Search configuration
+
+RandomSearch.maximum_number_evaluations = %EVALUATION_BUDGET
+
+# Bounce configuration
+
+Bounce.benchmark = @SparkTuning()
+Bounce.number_initial_points = 10
+Bounce.initial_target_dimensionality = 5
+Bounce.number_new_bins_on_split = 2
+Bounce.maximum_number_evaluations = %EVALUATION_BUDGET # 200
+Bounce.batch_size = 1
+Bounce.results_dir = "results"
+Bounce.maximum_number_evaluations_until_input_dim = 50 # 100
+Bounce.device = %DEVICE
+Bounce.dtype = %DTYPE
+Bounce.use_scipy_lbfgs = True
