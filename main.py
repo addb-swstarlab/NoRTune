@@ -7,6 +7,8 @@ import gin
 
 from bounce.bounce import Bounce
 from bounce.util.printing import BColors, BOUNCE_NAME
+from random_search.search import RandomSearch
+from random_search.spark import SparkBench
 
 from envs.utils import get_logger
 
@@ -41,14 +43,29 @@ def main():
         nargs="+",
         default=[],
     )
-
+    parser.add_argument(
+        "--method",
+        type=str,
+        default='bounce',
+        help='bounce, random, ...'
+    )
+    
     args = parser.parse_args()
 
     gin.parse_config_files_and_bindings(args.gin_files, args.gin_bindings)
 
-    bounce = Bounce()
+    match args.method:
+        case "bounce":
+            tuner = Bounce()
+        case "random":
+            tuner = RandomSearch(sb=SparkBench())
+        case _:
+            assert False, "The method is not defined.. Choose in [bounce, random]"
     
-    bounce.run()
+    tuner.run()
+    # bounce = Bounce()
+    
+    # bounce.run()
 
     gin.clear_config()
     now = time.time()
