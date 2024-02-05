@@ -160,6 +160,7 @@ class Bounce:
         self.results_dir = get_foldername(results_dir)
         
         os.makedirs(self.results_dir, exist_ok=True)
+        logging.info(f"Results are saved in .. {self.results_dir}")
         
         # save gin config to file
         with open(os.path.join(self.results_dir, "gin_config.txt"), "w") as f:
@@ -599,7 +600,7 @@ class Bounce:
                     f"✨ Iteration {self._n_evals}: {BColors.OKGREEN}New incumbent function value {y_next.min().item():.3f}{BColors.ENDC}"
                 )
             else:
-                logging.debug(
+                logging.info(
                     f"🚀 Iteration {self._n_evals}: No improvement. Best function value {best_fx.item():.3f}"
                 )
 
