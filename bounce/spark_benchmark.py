@@ -15,11 +15,11 @@ class SparkTuning(Benchmark):
     def __init__(
         self,
         n_features: int = 45,
-        benchmark_type: str = None
+        workload: str = None
         # csv_path: str = p.SPARK_CONF_INFO_CSV_PATH,
         # config_path: str = p.SPARK_CONF_PATH
     ):
-        self.env = SparkEnv(benchmark=benchmark_type)
+        self.env = SparkEnv(workload=workload)
         
         self.n_features = n_features
         self.config_path = self.env.config_path
