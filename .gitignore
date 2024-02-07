@@ -4,3 +4,10 @@
 /results/
 *.pyc
 *.iml
+*.sh
+*.conf
+*.csv
+envs/gcp_info.py
+*/results/
+data/*
+/logs/
