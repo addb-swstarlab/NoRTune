@@ -8,22 +8,32 @@ import torch
 import logging
 
 import envs.params as p
+from envs.spark import SparkEnv
 
 @gin.configurable
 class SparkTuning(Benchmark):
     def __init__(
         self,
         n_features: int = 45,
-        csv_path: str = p.SPARK_CONF_INFO_CSV_PATH,
-        config_path: str = p.SPARK_CONF_PATH
+        benchmark_type: str = None
+        # csv_path: str = p.SPARK_CONF_INFO_CSV_PATH,
+        # config_path: str = p.SPARK_CONF_PATH
     ):
+        self.env = SparkEnv(benchmark=benchmark_type)
+        
         self.n_features = n_features
-        self.config_path = config_path
-        csv_data = pd.read_csv(csv_path, index_col=0)
-        self.dict_data = csv_data.to_dict(orient='index')
+        self.config_path = self.env.config_path
+        self.dict_data = self.env.dict_data
         
-        self.fail_conf_flag = False
+        # self.fail_conf_flag = False
         
+        parameters = self._define_parameters()
+        
+        super().__init__(parameters=parameters, noise_std=None)
+
+        self.flip = False
+        
+    def _define_parameters(self) -> list:
         self.discrete_parameters = [] # for boolean parameters
         self.continuous_parameters = [] # for float parameters
         self.numerical_parameters =  [] # for int parameters
@@ -50,20 +60,7 @@ class SparkTuning(Benchmark):
                     self.categorical_parameters.append(p)
                     
         parameters = self.discrete_parameters + self.continuous_parameters + self.numerical_parameters + self.categorical_parameters
-        
-        # parameters = [
-        #     Parameter(
-        #         name=k,
-        #         type=getattr(ParameterType, dict_data[k]['type'].upper()),
-        #         lower_bound=dict_data[k]['min'],
-        #         upper_bound=dict_data[k]['max']
-        #     )
-        #     for k in dict_data.keys()
-        # ]
-        super().__init__(parameters=parameters, noise_std=None)
-
-        self.flip = False
-        
+        return parameters
     
     def save_configuration_file(self, x: torch.Tensor):
         f = open(self.config_path, 'w')
@@ -112,33 +109,10 @@ class SparkTuning(Benchmark):
         f.close()
         
     def apply_configuration(self):
-        logging.info("Applying created configuration to the remote Spark server..")
-        os.system(f'scp {self.config_path} {p.MASTER_ADDRESS}:{p.MASTER_CONF_PATH}')
-        exit_code = os.system(f'ssh {p.MASTER_ADDRESS} "bash --noprofile --norc -c scripts/run_join.sh"')
-        if exit_code > 0:
-            logging.error("Failed benchmarking!!")
-            logging.error("UNVALID CONFIGURATION!!")
-            self.fail_conf_flag = True
-        else:
-            logging.info("Successflly finished benchmarking")
-            self.fail_conf_flag = False
+        self.env.apply_configuration()
     
-    def get_results(self):
-        logging.info("Getting result files..")
-        if self.fail_conf_flag:
-            duration = 10000
-            tps = 0.1
-        else:
-            os.system(f'ssh {p.MASTER_ADDRESS} "bash --noprofile --norc -c scripts/report_transport.sh"')
-            f = open(p.HIBENCH_REPORT_PATH, 'r')
-            report = f.readlines()
-            f.close()
-            
-            duration = report[-1].split()[-3]
-            tps = report[-1].split()[-2]
-        
-        # return float(duration), float(tps)
-        return float(duration)
+    def get_results(self) -> float:
+        return self.env.get_results()
     
     
     def __call__(self, x: torch.Tensor) -> torch.Tensor:
