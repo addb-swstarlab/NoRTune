@@ -4,6 +4,7 @@ import bounce.projection
 import bounce.gaussian_process
 import bounce.spark_benchmark
 import random_search.spark
+import envs.spark
 import torch
 
 # Macros
@@ -31,6 +32,11 @@ TrustRegion.length_init_discrete = 10
 # SparkTuning config
 
 SparkTuning.n_features = 45
+
+# SparkEnv config
+# Choose from ["aggregation", "join", "scan", "wordcount", "terasort", "bayes", "kmeans", "pagerank"]
+
+SparkEnv.workload = 'join'
 
 # Random Search configuration
 
