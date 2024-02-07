@@ -2,7 +2,7 @@ import os
 import gin
 import json
 import logging
-from random_search.spark import SparkBench
+from random_search.benchmarks import SparkBench
 from envs.utils import get_foldername
 
 @gin.configurable
@@ -41,7 +41,7 @@ class RandomSearch: # Random Optimizer?
                 best_res = res
                 
                 # best_config = sampled_config
-                f = open('../data/add-spark.conf', 'r')
+                f = open('/home/jieun/SparkTuning/data/add-spark.conf', 'r')
                 best_config = f.readlines()    
                 
             configs.append(sampled_config.get_dictionary())
@@ -53,9 +53,11 @@ class RandomSearch: # Random Optimizer?
         
         with open(os.path.join(self.results_dir, 'results.json'), 'w') as f:
             json.dump(results, f)
-            
-        logging.info("......................")
-        logging.info("..Best Configuration..")
+                    
+        logging.info("............................")
+        logging.info("........Best results........")
+        logging.info(f"{best_res} s")
+        logging.info(".....Best Configuration.....")
         for l in best_config:
-            logging.info(l, end='')
+            logging.info(l)
         logging.info("......................")
