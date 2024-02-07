@@ -8,7 +8,7 @@ import gin
 from bounce.bounce import Bounce
 from bounce.util.printing import BColors, BOUNCE_NAME
 from random_search.search import RandomSearch
-from random_search.spark import SparkBench
+from random_search.benchmarks import SparkBench
 
 from envs.utils import get_logger
 
@@ -49,7 +49,7 @@ def main():
         default='bounce',
         help='bounce, random, ...'
     )
-    
+
     args = parser.parse_args()
 
     gin.parse_config_files_and_bindings(args.gin_files, args.gin_bindings)
@@ -58,7 +58,7 @@ def main():
         case "bounce":
             tuner = Bounce()
         case "random":
-            tuner = RandomSearch(sb=SparkBench())
+            tuner = RandomSearch()
         case _:
             assert False, "The method is not defined.. Choose in [bounce, random]"
     
