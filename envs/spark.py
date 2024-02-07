@@ -1,27 +1,29 @@
 import os
+import gin
 import logging
 import pandas as pd
 
 import envs.params as p
 
+@gin.configurable
 class SparkEnv:
     def __init__(
         self,
         csv_path: str = p.SPARK_CONF_INFO_CSV_PATH,
         config_path: str = p.SPARK_CONF_PATH,
-        benchmark: str = None
+        workload: str = None
     ):
         self.config_path=config_path
         
         csv_data = pd.read_csv(csv_path, index_col=0)
         self.dict_data = csv_data.to_dict(orient='index')
         
-        self.benchmark = benchmark if benchmark is not None else 'join'
+        self.workload = workload if workload is not None else 'join'
         
         self._alter_hibench_configuration()
         
     def _alter_hibench_configuration(self):
-        benchmark_size = {
+        workload_size = {
             'aggregation': 'huge',
             'join': 'gigantic', #'huge',
             'scan': 'huge',
@@ -31,9 +33,9 @@ class SparkEnv:
             'kmeans': 'large',
             'pagerank': 'large'
         }
-        HIBENCH_CONF_PATH = os.path.join(p.DATA_FOLDER_PATH, f'{benchmark_size[self.benchmark]}_hibench.conf')
+        HIBENCH_CONF_PATH = os.path.join(p.DATA_FOLDER_PATH, f'{workload_size[self.workload]}_hibench.conf')
         logging.info("Altering hibench workload scale..")
-        logging.info(f"Workload {self.benchmark} need {benchmark_size[self.benchmark]} size..")
+        logging.info(f"Workload {self.workload} need {workload_size[self.workload]} size..")
         os.system(f'scp {HIBENCH_CONF_PATH} {p.MASTER_ADDRESS}:{p.MASTER_CONF_PATH}/hibench.conf')
         
         
