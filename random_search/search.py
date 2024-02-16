@@ -9,9 +9,10 @@ from envs.utils import get_foldername
 class RandomSearch: # Random Optimizer?
     def __init__(
         self,
-        maximum_number_evaluations: int
+        benchmark: SparkBench = None,
+        maximum_number_evaluations: int = 100
     ):
-        self.sb = SparkBench()
+        self.benchmark = benchmark if benchmark is not None else SparkBench()
         self.maximum_number_evaluations = maximum_number_evaluations                        
         self._set_result_dir()
     
@@ -29,10 +30,10 @@ class RandomSearch: # Random Optimizer?
         results = []
         
         for _ in range(self.maximum_number_evaluations):
-            sampled_config = self.sb.random_sampling_configuration()
-            self.sb.apply_configuration()
+            sampled_config = self.benchmark.random_sampling_configuration()
+            self.benchmark.apply_configuration()
             
-            res = self.sb.get_results()
+            res = self.benchmark.get_results()
             logging.info(f"[{_}/{self.maximum_number_evaluations}]!!!!!!!!!!!!!!Results:{res}!!!!!!!!!!!!!!")
             
             if res < best_res:
