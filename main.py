@@ -7,6 +7,7 @@ import gin
 
 from bounce.bounce import Bounce
 from bounce.util.printing import BColors, BOUNCE_NAME
+from bounce.spark_benchmark import SparkTuning
 from random_search.search import RandomSearch
 from random_search.benchmarks import SparkBench
 
@@ -49,6 +50,13 @@ def main():
         default='bounce',
         help='bounce, random, ...'
     )
+    parser.add_argument(
+        "--workload",
+        type=str,
+        choices=["aggregation", "join", "scan", "wordcount", "terasort", "bayes", "kmeans", "pagerank"],
+        default="join"
+    )
+
 
     args = parser.parse_args()
 
@@ -56,9 +64,11 @@ def main():
 
     match args.method:
         case "bounce":
-            tuner = Bounce()
-        case "random":
-            tuner = RandomSearch()
+            benchmark = SparkTuning(workload=args.workload)
+            tuner = Bounce(benchmark=benchmark)
+        case "random":            
+            benchmark = SparkBench(workload=args.workload)
+            tuner = RandomSearch(benchmark=benchmark)
         case _:
             assert False, "The method is not defined.. Choose in [bounce, random]"
     
