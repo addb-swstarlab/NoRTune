@@ -11,9 +11,9 @@ from envs.spark import SparkEnv
 class SparkBench(SparkEnv):
     def __init__(
         self,
-        benchmark_type: str = None
+        workload: str = None
     ):
-        super.__init__(self, benchmark_type)
+        super().__init__(workload=workload)
         # self.config_path = config_path
         # csv_data = pd.read_csv(csv_path, index_col=0)
         # self.dict_data = csv_data.to_dict(orient='index')
