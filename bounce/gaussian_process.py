@@ -1,7 +1,6 @@
 import logging
 from typing import Optional
 
-import gin
 import gpytorch
 import numpy as np
 import torch
@@ -18,18 +17,18 @@ from bounce.kernel.categorical_mixture import MixtureKernel
 from bounce.projection import AxUS
 from bounce.util.benchmark import ParameterType
 
+from envs.params import GP_PARAM as p
 
-@gin.configurable
 def get_gp(
     axus: AxUS,
     x: Tensor,
     fx: Tensor,
-    lengthscale_prior_shape: float = 3,
-    lengthscale_prior_rate: float = 6,
-    outputscale_prior_shape: float = 2,
-    outputscale_prior_rate: float = 0.15,
-    noise_prior_shape: float = 1.1,
-    noise_prior_rate: float = 2,
+    lengthscale_prior_shape: float = p["lengthscale_prior_shape"],
+    lengthscale_prior_rate: float = p["lengthscale_prior_rate"],
+    outputscale_prior_shape: float = p["outputscale_prior_shape"],
+    outputscale_prior_rate: float = p["outputscale_prior_rate"],
+    noise_prior_shape: float = p["noise_prior_shape"],
+    noise_prior_rate: float = p["noise_prior_rate"],
     lamda: Optional[float] = None,
     discrete_ard: bool = False,
     continuous_ard: bool = True,
