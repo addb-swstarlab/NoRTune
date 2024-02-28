@@ -2,7 +2,6 @@ import logging
 import warnings
 from typing import Optional
 
-import gin
 import numpy as np
 import torch
 from botorch.acquisition import ExpectedImprovement, qExpectedImprovement
@@ -18,7 +17,6 @@ from bounce.trust_region import TrustRegion
 from bounce.util.benchmark import ParameterType
 
 
-@gin.configurable
 def create_candidates_discrete(
     x_scaled: torch.Tensor,
     fx_scaled: torch.Tensor,
