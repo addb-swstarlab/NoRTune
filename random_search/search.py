@@ -1,18 +1,18 @@
 import os
-import gin
 import json
 import logging
-from random_search.benchmarks import SparkBench
+# from random_search.benchmarks import SparkBench
 from envs.utils import get_foldername
+from envs.params import BOUNCE_PARAM as bp
 
-@gin.configurable
 class RandomSearch: # Random Optimizer?
     def __init__(
         self,
-        benchmark: SparkBench = None,
-        maximum_number_evaluations: int = 100
+        benchmark,
+        maximum_number_evaluations: int = bp["maximum_number_evaluations"] # 100
     ):
-        self.benchmark = benchmark if benchmark is not None else SparkBench()
+        # self.benchmark = benchmark if benchmark is not None else SparkBench()
+        self.benchmark = benchmark
         self.maximum_number_evaluations = maximum_number_evaluations                        
         self._set_result_dir()
     
