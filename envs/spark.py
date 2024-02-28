@@ -1,30 +1,32 @@
 import os
-import gin
 import logging
 import pandas as pd
 
 import envs.params as p
 
-@gin.configurable
 class SparkEnv:
     def __init__(
         self,
         csv_path: str = p.SPARK_CONF_INFO_CSV_PATH,
         config_path: str = p.SPARK_CONF_PATH,
-        workload: str = None
+        workload: str = None,
+        alter: bool = True
     ):
         self.config_path=config_path
         
         csv_data = pd.read_csv(csv_path, index_col=0)
+        ## TODO: nan --> 'blank', modify to process nan values
+        # csv_data = pd.read_csv(csv_path, index_col=0, keep_default_na=False)
         self.dict_data = csv_data.to_dict(orient='index')
         
         self.workload = workload if workload is not None else 'join'
         
-        self._alter_hibench_configuration()
+        if alter:
+            self._alter_hibench_configuration()
         
     def _alter_hibench_configuration(self):
         workload_size = {
-            'aggregation': 'gigantic', #'huge',
+            'aggregation': 'custom', #'gigantic', #'huge',
             'join': 'gigantic', #'huge',
             'scan': 'gigantic', #'huge',
             'wordcount': 'large',
@@ -45,6 +47,7 @@ class SparkEnv:
         """
         logging.info("Applying created configuration to the remote Spark server..")
         os.system(f'scp {self.config_path} {p.MASTER_ADDRESS}:{p.MASTER_CONF_PATH}')
+
         exit_code = os.system(f'ssh {p.MASTER_ADDRESS} "bash --noprofile --norc -c scripts/run_{self.workload}.sh"')
         # exit_code = os.system(f'ssh {p.MASTER_ADDRESS} "bash --noprofile --norc -c scripts/run_bayes.sh"')
         if exit_code > 0:
@@ -54,7 +57,7 @@ class SparkEnv:
         else:
             logging.info("Successflly finished benchmarking")
             self.fail_conf_flag = False
-            
+                        
     def get_results(self) -> float:
         logging.info("Getting result files..")
         if self.fail_conf_flag:
