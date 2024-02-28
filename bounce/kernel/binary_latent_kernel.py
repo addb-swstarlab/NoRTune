@@ -1,6 +1,5 @@
 from random import shuffle
 
-import gin
 import torch
 from gpytorch.constraints import Interval, GreaterThan
 from gpytorch.kernels import Kernel, MaternKernel, ProductKernel, AdditiveKernel
@@ -8,8 +7,6 @@ from torch.quasirandom import SobolEngine
 
 from bounce.projection import Parameter
 
-
-@gin.configurable
 class BinaryLatentSpaceKernel(Kernel):
     has_lengthscale = True
 
