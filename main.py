@@ -3,7 +3,7 @@ import logging
 import time
 import os
 
-import gin
+# import gin
 
 from bounce.bounce import Bounce
 from bounce.util.printing import BColors, BOUNCE_NAME
@@ -12,6 +12,9 @@ from random_search.search import RandomSearch
 from random_search.benchmarks import SparkBench
 
 from envs.utils import get_logger
+from envs.spark import SparkEnv
+
+from envs.params import print_params
 
 logger = get_logger()
 os.system('clear')
@@ -31,19 +34,19 @@ def main():
         epilog="For more information, please contact the author.",
     )
 
-    parser.add_argument(
-        "--gin-files",
-        type=str,
-        nargs="+",
-        default=["configs/my.gin"],
-        help="Path to the config file",
-    )
-    parser.add_argument(
-        "--gin-bindings",
-        type=str,
-        nargs="+",
-        default=[],
-    )
+    # parser.add_argument(
+    #     "--gin-files",
+    #     type=str,
+    #     nargs="+",
+    #     default=["configs/my.gin"],
+    #     help="Path to the config file",
+    # )
+    # parser.add_argument(
+    #     "--gin-bindings",
+    #     type=str,
+    #     nargs="+",
+    #     default=[],
+    # )
     parser.add_argument(
         "--method",
         type=str,
@@ -59,12 +62,14 @@ def main():
 
 
     args = parser.parse_args()
+    print_params()
 
-    gin.parse_config_files_and_bindings(args.gin_files, args.gin_bindings)
+    # gin.parse_config_files_and_bindings(args.gin_files, args.gin_bindings)
 
     match args.method:
         case "bounce":
-            benchmark = SparkTuning(workload=args.workload)
+            env = SparkEnv(workload=args.workload)
+            benchmark = SparkTuning(env=env)
             tuner = Bounce(benchmark=benchmark)
         case "random":            
             benchmark = SparkBench(workload=args.workload)
@@ -77,7 +82,7 @@ def main():
     
     # bounce.run()
 
-    gin.clear_config()
+    # gin.clear_config()
     now = time.time()
     logger.info(f"Total time: {now - then:.2f} seconds")
 
