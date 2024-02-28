@@ -1,38 +1,26 @@
 from bounce.benchmarks import Benchmark
 from bounce.util.benchmark import Parameter, ParameterType
 
-import os
-import gin
-import pandas as pd
 import torch
 import logging
 
-import envs.params as p
-from envs.spark import SparkEnv
-
-@gin.configurable
 class SparkTuning(Benchmark):
-    def __init__(
-        self,
-        n_features: int = 45,
-        workload: str = None
-        # csv_path: str = p.SPARK_CONF_INFO_CSV_PATH,
-        # config_path: str = p.SPARK_CONF_PATH
-    ):
-        self.env = SparkEnv(workload=workload)
-        
-        self.n_features = n_features
+    def __init__(self, env):
+        self.env = env
+        self.n_features = len(self.env.dict_data)
+        logging.info(f"n_features: {self.n_features}")
+        # self.fail_conf_flag = False        
+
         self.config_path = self.env.config_path
         self.dict_data = self.env.dict_data
-        
-        # self.fail_conf_flag = False
         
         parameters = self._define_parameters()
         
         super().__init__(parameters=parameters, noise_std=None)
 
         self.flip = False
-        
+
+            
     def _define_parameters(self) -> list:
         self.discrete_parameters = [] # for boolean parameters
         self.continuous_parameters = [] # for float parameters
@@ -47,7 +35,7 @@ class SparkTuning(Benchmark):
                 lower_bound=self.dict_data[k]['min'],
                 upper_bound=self.dict_data[k]['max'],
                 unit=None if self.dict_data[k]['unit'] != self.dict_data[k]['unit'] else self.dict_data[k]['unit'],
-                items=None if self.dict_data[k]['item'] != self.dict_data[k]['item'] else self.dict_data[k]['item'].split(',')
+                items=None if self.dict_data[k]['range'] != self.dict_data[k]['range'] else self.dict_data[k]['range'].split(',')
             )
             match p_type:
                 case ParameterType.CONTINUOUS:
@@ -62,7 +50,7 @@ class SparkTuning(Benchmark):
         parameters = self.discrete_parameters + self.continuous_parameters + self.numerical_parameters + self.categorical_parameters
         return parameters
     
-    def save_configuration_file(self, x: torch.Tensor):
+    def save_configuration_file(self, x: torch.Tensor):        
         f = open(self.config_path, 'w')
         
         """
