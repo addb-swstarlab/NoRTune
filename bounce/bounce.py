@@ -6,7 +6,6 @@ import zlib
 from datetime import datetime
 from typing import Optional, Union
 
-import gin
 import numpy as np
 import torch
 from botorch.acquisition import ExpectedImprovement
@@ -32,8 +31,8 @@ from bounce.util.data_handling import (
 )
 from bounce.util.printing import BColors
 
+from envs.params import BOUNCE_PARAM as bp
 
-@gin.configurable
 class Bounce:
     """
     Bounce class: implements the Bounce algorithm.
@@ -44,18 +43,18 @@ class Bounce:
     def __init__(
         self,
         benchmark: Benchmark,
-        number_initial_points: int,
-        initial_target_dimensionality: int,
-        number_new_bins_on_split: int,
-        maximum_number_evaluations: int,
-        batch_size: int,
-        results_dir: str,
+        number_initial_points: int = bp["number_initial_points"],
+        initial_target_dimensionality: int = bp["initial_target_dimensionality"],
+        number_new_bins_on_split: int = bp["number_new_bins_on_split"],
+        maximum_number_evaluations: int = bp["maximum_number_evaluations"],
+        batch_size: int = bp["batch_size"],
+        results_dir: str = bp["results_dir"],
         desired_final_dimensionality: Optional[int] = None,
-        maximum_number_evaluations_until_input_dim: Optional[int] = None,
+        maximum_number_evaluations_until_input_dim: Optional[int] = bp["maximum_number_evaluations_until_input_dim"],
         max_cholesky_size: int = 1000,
         device: str = "cuda" if torch.cuda.is_available() else "cpu",
-        dtype: Optional[str] = None,
-        use_scipy_lbfgs: bool = True,
+        dtype: Optional[str] = bp["dtype"],
+        use_scipy_lbfgs: bool = bp["use_scipy_lbfgs"],
         max_lbfgs_iters: Optional[int] = None,
         min_cuda: int = 10,
         n_interleaved: int = 5,
@@ -81,7 +80,7 @@ class Bounce:
             min_cuda: the minimum number of data points to use cuda
             n_interleaved: the number of interleaved steps when optimizing mixed benchmarks
 
-        """
+        """       
         self.benchmark = benchmark
         """
         The benchmark to be used
@@ -144,7 +143,6 @@ class Bounce:
                     self.dtype = torch.float64
                 case _:
                     raise ValueError(f"Unknown dtype {dtype}")
-
         # defining results directory
         # now = datetime.now()
         # gin_config_str = gin.config_str()
@@ -155,16 +153,14 @@ class Bounce:
         # """
         # the directory where the results will be stored
         # """
-        
         from envs.utils import get_foldername
         self.results_dir = get_foldername(results_dir)
-        
         os.makedirs(self.results_dir, exist_ok=True)
         logging.info(f"Results are saved in .. {self.results_dir}")
         
         # save gin config to file
-        with open(os.path.join(self.results_dir, "gin_config.txt"), "w") as f:
-            f.write(gin.config_str())
+        # with open(os.path.join(self.results_dir, "gin_config.txt"), "w") as f:
+        #     f.write(gin.config_str())
 
         self.desired_final_dimensionality = None
         """
