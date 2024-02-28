@@ -11,9 +11,10 @@ from envs.spark import SparkEnv
 class SparkBench(SparkEnv):
     def __init__(
         self,
-        workload: str = None
+        workload: str = None,
+        alter: bool = False
     ):
-        super().__init__(workload=workload)
+        super().__init__(workload=workload, alter=alter)
         # self.config_path = config_path
         # csv_data = pd.read_csv(csv_path, index_col=0)
         # self.dict_data = csv_data.to_dict(orient='index')
@@ -59,10 +60,10 @@ class SparkBench(SparkEnv):
                     if p_unit == p_unit:
                         v = str(v) + p_unit
                 case 'binary':
-                    _items = self.dict_data[k]['item'].split(',')
+                    _items = self.dict_data[k]['range'].split(',')
                     v = _items[v]
                 case 'categorical':
-                    _items = self.dict_data[k]['item'].split(',')
+                    _items = self.dict_data[k]['range'].split(',')
                     v = _items[v]
             if log_flag:
                 logging.info(f'{k}={v}')
