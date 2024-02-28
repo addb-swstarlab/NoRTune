@@ -1,11 +1,9 @@
 import math
 
-import gin
 import numpy as np
 import torch
+from envs.params import TRUSTREGION_PARAM as tp
 
-
-@gin.configurable
 class TrustRegion:
     """
     Trust region object for the trust region algorithm.
@@ -14,7 +12,7 @@ class TrustRegion:
     def __init__(
         self,
         dimensionality: int,
-        length_init_discrete: int = 40,
+        length_init_discrete: int = tp["length_init_discrete"], # 40
         length_init_continuous: float = 0.8,
     ):
         """
