@@ -4,7 +4,6 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Optional
 
-import gin
 import numpy as np
 import torch
 
@@ -182,7 +181,6 @@ class Bin:
         return new_bins
 
 
-@gin.configurable
 class AxUS:
     def __init__(
         self,
