@@ -31,6 +31,7 @@ class RandomSearch: # Random Optimizer?
         
         for _ in range(self.maximum_number_evaluations):
             sampled_config = self.benchmark.random_sampling_configuration()
+            self.benchmark.save_configuration_file(sampled_config)
             self.benchmark.apply_configuration()
             
             res = self.benchmark.get_results()
