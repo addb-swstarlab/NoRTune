@@ -31,7 +31,7 @@ def get_gp(
     noise_prior_rate: float = p["noise_prior_rate"],
     lamda: Optional[float] = None,
     discrete_ard: bool = False,
-    continuous_ard: bool = True,
+    continuous_ard: bool = True
 ) -> tuple[SingleTaskGP, Tensor, Tensor]:
     """
     Define the GP model.
