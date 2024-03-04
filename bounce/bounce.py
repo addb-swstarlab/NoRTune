@@ -445,7 +445,7 @@ class Bounce:
             model, train_x, train_fx = get_gp(
                 axus=axus,
                 x=x_scaled,
-                fx=-fx_scaled,
+                fx=-fx_scaled
             )
 
             use_scipy_lbfgs = self.use_scipy_lbfgs and (
