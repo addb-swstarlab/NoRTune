@@ -12,7 +12,7 @@ class SparkBench(SparkEnv):
     def __init__(
         self,
         workload: str = None,
-        alter: bool = False
+        alter: bool = True
     ):
         super().__init__(workload=workload, alter=alter)
         # self.config_path = config_path
@@ -42,6 +42,7 @@ class SparkBench(SparkEnv):
         return cs
     
     def save_configuration_file(self, config: Configuration, log_flag=False):
+        logging.info(f"Save configuration to {self.config_path} 💨")
         config = config.get_dictionary()
         
         f = open(self.config_path, 'w')
