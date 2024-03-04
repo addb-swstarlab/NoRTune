@@ -1,9 +1,10 @@
 import os
 import json
 import logging
+from statistics import mean
 # from random_search.benchmarks import SparkBench
 from envs.utils import get_foldername
-from envs.params import BOUNCE_PARAM as bp
+from envs.params import BOUNCE_PARAM as bp, BENCHMARKING_REPETITION
 
 class RandomSearch: # Random Optimizer?
     def __init__(
@@ -32,9 +33,13 @@ class RandomSearch: # Random Optimizer?
         for _ in range(self.maximum_number_evaluations):
             sampled_config = self.benchmark.random_sampling_configuration()
             self.benchmark.save_configuration_file(sampled_config)
-            self.benchmark.apply_configuration()
             
-            res = self.benchmark.get_results()
+            res_ = []
+            for _ in range(BENCHMARKING_REPETITION):
+                self.benchmark.apply_and_run_configuration()
+                res_.append(self.benchmark.get_results()) 
+            res = mean(res_)
+           
             logging.info(f"[{_}/{self.maximum_number_evaluations}]!!!!!!!!!!!!!!Results:{res}!!!!!!!!!!!!!!")
             
             if res < best_res:
