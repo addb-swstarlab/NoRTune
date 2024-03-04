@@ -87,6 +87,13 @@ class Benchmark(ABC):
         """
 
     @property
+    def parameter_names(self) -> list:
+        names = []
+        for _ in range(len(self.parameters)):
+            names.append(self.parameters[_].name)
+        return names
+    
+    @property
     def dim(self) -> int:
         """
 
