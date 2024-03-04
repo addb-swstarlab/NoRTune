@@ -1,8 +1,10 @@
 from bounce.benchmarks import Benchmark
 from bounce.util.benchmark import Parameter, ParameterType
+from envs.params import BENCHMARKING_REPETITION
 
 import torch
 import logging
+from statistics import mean
 
 class SparkTuning(Benchmark):
     def __init__(self, env):
@@ -97,8 +99,8 @@ class SparkTuning(Benchmark):
         
         f.close()
         
-    def apply_configuration(self):
-        self.env.apply_configuration()
+    def apply_and_run_configuration(self):
+        self.env.apply_and_run_configuration()
     
     def get_results(self) -> float:
         return self.env.get_results()
@@ -121,11 +123,14 @@ class SparkTuning(Benchmark):
             self.save_configuration_file(x_)
             
             # TODO: Repeat benchmarking to minimise the impact of noise from GCP environments
-            self.apply_configuration()        
+            res_ = []
+            for _ in range(BENCHMARKING_REPETITION):
+                self.apply_and_run_configuration()
+                res_.append(self.get_results())
+            mean_res = mean(res_)
             
-            res_ = self.get_results()
-            logging.info(f"!!!!!!!!!!!!!!Results:{res_}!!!!!!!!!!!!!!")
-            res.append(res_)
+            logging.info(f"!!!!!!!!!!!!!!Results:{mean_res}!!!!!!!!!!!!!!")
+            res.append(mean_res)
             
             # self.run_benchmark()
         
