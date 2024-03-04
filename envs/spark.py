@@ -26,12 +26,12 @@ class SparkEnv:
         
     def _alter_hibench_configuration(self):
         workload_size = {
-            'aggregation': 'custom', #'gigantic', #'huge',
-            'join': 'gigantic', #'huge',
-            'scan': 'gigantic', #'huge',
+            'aggregation': 'huge', #'gigantic', #'huge',
+            'join': 'huge', #'huge',
+            'scan': 'huge', #'huge',
             'wordcount': 'large',
             'terasort': 'large',
-            'bayes': 'gigantic', #'huge',
+            'bayes': 'huge', #'huge',
             'kmeans': 'large',
             'pagerank': 'large'
         }
@@ -45,7 +45,7 @@ class SparkEnv:
             TODO:
             !!A function to Save configuration should be implemented on other files!!
         """
-        logging.info("Applying created configuration to the remote Spark server..")
+        logging.info("Applying created configuration to the remote Spark server.. 💨💨")
         os.system(f'scp {self.config_path} {p.MASTER_ADDRESS}:{p.MASTER_CONF_PATH}')
 
         exit_code = os.system(f'ssh {p.MASTER_ADDRESS} "bash --noprofile --norc -c scripts/run_{self.workload}.sh"')
