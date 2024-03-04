@@ -40,6 +40,8 @@ GP_PARAM = {
             "noise_prior_rate" : 0.05 # 2
             }
 
+BENCHMARKING_REPETITION = 3
+
 def print_params():
     import logging
     logging.info("📢 Information of hyperparameters")
