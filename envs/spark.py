@@ -40,7 +40,7 @@ class SparkEnv:
         logging.info(f"Workload ***{self.workload}*** need ***{workload_size[self.workload]}*** size..")
         os.system(f'scp {HIBENCH_CONF_PATH} {p.MASTER_ADDRESS}:{p.MASTER_CONF_PATH}/hibench.conf')
         
-    def apply_configuration(self):
+    def apply_and_run_configuration(self):
         """
             TODO:
             !!A function to Save configuration should be implemented on other files!!
