@@ -51,6 +51,7 @@ class SparkTuning(Benchmark):
         return parameters
     
     def save_configuration_file(self, x: torch.Tensor):        
+        logging.info(f"Save configuration to {self.config_path} 💨")
         f = open(self.config_path, 'w')
         
         """
@@ -116,17 +117,12 @@ class SparkTuning(Benchmark):
         res = []
         for x_ in x:
             x_ = x_.squeeze()
-            # TODO: 1. Converting x with a Tensor type into the Spark configuration format.
-            # Complete!
+        
             self.save_configuration_file(x_)
             
-            # TODO: 2. Transporting the created spark configuration to Spark master node to apply the configuration setting.
-            # Complete!
+            # TODO: Repeat benchmarking to minimise the impact of noise from GCP environments
             self.apply_configuration()        
             
-            # TODO: 3. Running HiBench to benchmark Spark with the configuration.
-            # TODO: 4. Receiving the performance results.
-            # Complete! But should separate functions..
             res_ = self.get_results()
             logging.info(f"!!!!!!!!!!!!!!Results:{res_}!!!!!!!!!!!!!!")
             res.append(res_)
