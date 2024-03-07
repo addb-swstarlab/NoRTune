@@ -42,7 +42,7 @@ def main():
     parser.add_argument(
         "--neighbor",
         type=float,
-        default=0.01
+        default=0.03
     )
 
     args = parser.parse_args()
@@ -79,6 +79,14 @@ def main():
 
     print_params()
 
+    ## print parser info
+    logger.info("📢 Argument information ")
+    logger.info("*************************************")
+    for i in vars(args):
+        logger.info(f'{i}: {vars(args)[i]}')
+    logger.info("*************************************")
+    
+    
     # gin.parse_config_files_and_bindings(args.gin_files, args.gin_bindings)
 
     match args.method:
