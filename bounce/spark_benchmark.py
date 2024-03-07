@@ -66,7 +66,7 @@ class SparkTuning(Benchmark):
             v = x_wo_cat[i]
             match self.parameters[i].type:
                 case ParameterType.BINARY:
-                    v = int(v)
+                    v = round(v)
                     v = self.parameters[i].items[v]
                 case ParameterType.CONTINUOUS:
                     v = torch.round(v, decimals=2)
@@ -74,7 +74,7 @@ class SparkTuning(Benchmark):
                     if p_unit is not None:
                         v = str(v) + p_unit
                 case ParameterType.NUMERICAL:
-                    v = int(v)
+                    v = round(v)
                     p_unit = self.parameters[i].unit
                     if p_unit is not None:
                         v = str(v) + p_unit
