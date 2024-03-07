@@ -170,7 +170,7 @@ def sample_numerical(
 
     sobol = SobolEngine(len(bins), scramble=True, seed=seed)
     x_init = sobol.draw(number_of_samples).to(dtype=dtype) * 2 - 1
-    x_init = torch.round(x_init)
+    # x_init = torch.round(x_init)
     return x_init
 #########################################
 
@@ -191,7 +191,7 @@ def sample_categorical(
     Returns:
         the samples
 
-    """
+    """ 
     for bin in bins:
         assert bin.parameter_type == ParameterType.CATEGORICAL, f"Parameter {bin.parameter} is not categorical."
 
