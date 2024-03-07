@@ -30,7 +30,7 @@ class RandomSearch: # Random Optimizer?
         configs = []
         results = []
         
-        for _ in range(self.maximum_number_evaluations):
+        for i in range(self.maximum_number_evaluations):
             sampled_config = self.benchmark.random_sampling_configuration()
             self.benchmark.save_configuration_file(sampled_config)
             
@@ -40,7 +40,7 @@ class RandomSearch: # Random Optimizer?
                 res_.append(self.benchmark.get_results()) 
             res = mean(res_)
            
-            logging.info(f"[{_}/{self.maximum_number_evaluations}]!!!!!!!!!!!!!!Results:{res}!!!!!!!!!!!!!!")
+            logging.info(f"[{i}/{self.maximum_number_evaluations}]!!!!!!!!!!!!!!Results:{res}!!!!!!!!!!!!!!")
             
             if res < best_res:
                 logging.info(f"## Best result is updated!! : {best_res} --> {res}")
