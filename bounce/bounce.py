@@ -206,6 +206,7 @@ class Bounce:
         if settings.ADJUST_NUMBER_OF_NEW_BINS:
             self._adjust_number_bins_on_split()
         logging.info(f"🤖 {settings.NAME} will split at most {self._n_splits} times.")
+        print(f"🤖 {settings.NAME} will split at most {self._n_splits} times.")
         self.split_budget = self._split_budget(self.initial_target_dimensionality)
         """
         the budget for the current target dimensionality
@@ -595,10 +596,12 @@ class Bounce:
                 logging.info(
                     f"✨ Iteration {self._n_evals}: {BColors.OKGREEN}New incumbent function value {y_next.min().item():.3f}{BColors.ENDC}"
                 )
+                print(f"✨ Iteration {self._n_evals}: {BColors.OKGREEN}New incumbent function value {y_next.min().item():.3f}{BColors.ENDC}")
             else:
                 logging.info(
                     f"🚀 Iteration {self._n_evals}: No improvement. Best function value {best_fx.item():.3f}"
                 )
+                print(f"🚀 Iteration {self._n_evals}: No improvement. Best function value {best_fx.item():.3f}")
 
             # Calculate the estimated trust region dimensionality
             tr_dim = self._forecasted_tr_dim
@@ -645,6 +648,7 @@ class Bounce:
                 if self.random_embedding.target_dim < self.benchmark.representation_dim:
                     # Full dim is not reached yet
                     logging.info(f"✂️ Splitting trust region")
+                    print(f"✂️ Splitting trust region")
 
                     index_mapping = self.random_embedding.split(
                         self.number_new_bins_on_split
@@ -669,6 +673,7 @@ class Bounce:
                     logging.info(
                         f"🏁 Reached full dimensionality. Restarting with new random samples."
                     )
+                    print(f"🏁 Reached full dimensionality. Restarting with new random samples.")
                     self.split_budget = self._split_budget(
                         self.random_embedding.input_dim
                     )
