@@ -298,7 +298,7 @@ class AxUS:
         # find the number of bins for every parameter type
         for parameter_type, _parameter_type_indices in parameter_type_indices.items():
             n_bins = bins_per_type[parameter_type]
-            logging.debug(
+            logging.info(
                 f"Parameter type {parameter_type} gets {n_bins}/{self.n_bins} bins."
             )
             if (
@@ -332,7 +332,8 @@ class AxUS:
                         bin_sizing=self.bin_sizing,
                     )
                 )
-        logging.debug(f"Total number of bins: {len(self.bins)}")
+        logging.info(f"Total number of bins: {len(self.bins)}")
+        print(f"Total number of bins: {len(self.bins)}")
 
     def project_up(self, x: torch.Tensor) -> torch.Tensor:
         """
@@ -454,7 +455,7 @@ class AxUS:
             n_new = min(n_new_bins, len(bin.parameters) - 1)
             if n_new == 0:
                 b_old.append(bin)
-                logging.debug(
+                logging.info(
                     f"Bin of type {bin.parameter_type} is not split because it only contains one parameter."
                 )
                 index_mapping[bin_indcs] = []
