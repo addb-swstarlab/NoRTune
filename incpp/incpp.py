@@ -240,7 +240,7 @@ class incPP(Bounce):
             )
             factor **= self.batch_size
             factor = np.clip(factor, a_min=1e-10, a_max=None)
-            logging.debug(
+            logging.info(
                 f"🔎 Adjusting trust region by factor {factor.item():.3f}. Remaining budget: {remaining_budget}"
             )
             update_tr_state(
@@ -250,7 +250,7 @@ class incPP(Bounce):
                 adjustment_factor=factor,
             )
 
-            logging.debug(
+            logging.info(
                 f"📏 Trust region has length {tr.length_discrete_continuous:.3f} and minium l {tr.length_min_discrete:.3f}"
             )
 
@@ -270,7 +270,7 @@ class incPP(Bounce):
                 if self.random_embedding.target_dim < self.benchmark.representation_dim:
                     # Full dim is not reached yet
                     logging.info(f"✂️ Splitting trust region")
-
+                
                     index_mapping = self.random_embedding.split(
                         self.number_new_bins_on_split
                     )
@@ -278,7 +278,7 @@ class incPP(Bounce):
                     # move data to higher-dimensional space
                     self.x_tr = join_data(self.x_tr, index_mapping)
                     self.x_global = join_data(self.x_global, index_mapping)
-
+                    
                     self.trust_region = TrustRegion(
                         dimensionality=self.random_embedding.target_dim
                     )
