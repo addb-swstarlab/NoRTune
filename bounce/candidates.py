@@ -423,5 +423,5 @@ def sample_initial_points_discrete(
     # remove candidates that are not within the trust region
     x_cand_in_tr = x_cand[hamming_distance(x_cand, x_center) <= tr_length, :]
     if len(x_cand_in_tr) == 0:
-        logging.debug(f"No initial points in trust region, returning all candidates")
+        logging.info(f"No initial points in trust region, returning all candidates")
     return x_cand_in_tr if len(x_cand_in_tr) > 0 else x_cand
