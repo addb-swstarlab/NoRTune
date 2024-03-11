@@ -207,7 +207,10 @@ class Bounce:
             self._adjust_number_bins_on_split()
         logging.info(f"🤖 {settings.NAME} will split at most {self._n_splits} times.")
         print(f"🤖 {settings.NAME} will split at most {self._n_splits} times.")
+        
         self.split_budget = self._split_budget(self.initial_target_dimensionality)
+        logging.info(f"✅ The split budget for {self.initial_target_dimensionality} dims is {self.split_budget}")
+        print(f"[bounce.py 213] ✅ The split budget for {self.initial_target_dimensionality} dims is {self.split_budget}")
         """
         the budget for the current target dimensionality
         """
@@ -252,6 +255,8 @@ class Bounce:
         self._all_split_budgets = {
             i.item(): self._split_budget(i.item()) for i in all_target_dims
         }
+        logging.info(f"🅰 All split budgets are{self._all_split_budgets}")
+        print(f"🅰 All split budgets are{self._all_split_budgets}")
 
     def _reset_local_data(self):
         # saving tr local data
@@ -291,8 +296,11 @@ class Bounce:
             + 1
         )
         if best_bin_size != self.number_new_bins_on_split:
-            logging.debug(
-                f"Updating number of new bins from {self.number_new_bins_on_split} to {best_bin_size}"
+            logging.info(
+                f"📌Updating number of new bins from {self.number_new_bins_on_split} to {best_bin_size}"
+            )
+            print(
+                f"📌Updating number of new bins from {self.number_new_bins_on_split} to {best_bin_size}"
             )
             self.number_new_bins_on_split = best_bin_size.item()
             self._n_splits = math.ceil(
@@ -407,8 +415,8 @@ class Bounce:
         fx_init = self.benchmark(x_init_up)
 
         self._add_data_to_tr_observations(
-            xs_down=x_init,
-            xs_up=x_init_up,
+            xs_down=x_init, # [n, target_dim] target configs converted from original configs
+            xs_up=x_init_up, # [n, original_dim] original configs
             fxs=fx_init,
         )
 
@@ -502,15 +510,20 @@ class Bounce:
             # TODO don't use elif True here but check for the exact type
             elif True:
                 # Scale the function values
-
-                continuous_indices = torch.tensor(
-                    [
-                        i
-                        for b, i in axus.bins_and_indices_of_type(
-                            ParameterType.CONTINUOUS
-                        )
-                    ]
-                )
+                ##########--------JIEUN--------##########
+                ## TODO: Unifying data types; numerical and continuous
+                continuous_type = axus.bins_and_indices_of_type(ParameterType.CONTINUOUS) + \
+                                    axus.bins_and_indices_of_type(ParameterType.NUMERICAL) 
+                continuous_indices = torch.tensor([ i for ( _, i ) in continuous_type])
+                # continuous_indices = torch.tensor(
+                #     [
+                #         i
+                #         for b, i in axus.bins_and_indices_of_type(
+                #             ParameterType.CONTINUOUS
+                #         )
+                #     ]
+                # )
+                #########################################
                 x_best = None
                 for _ in tqdm(range(self.n_interleaved), desc="☯ Interleaved steps"):
                     x_best, fx_best, tr_state = create_candidates_discrete(
@@ -550,7 +563,7 @@ class Bounce:
                 raise NotImplementedError(
                     "Only binary and continuous benchmarks are supported."
                 )
-            # get the GP hyperparameters as a dictionary
+            # get the GP hyperpa         rameters as a dictionary
             self.save_tr_state(tr_state)
             minimum_xs = x_best.detach().cpu()
             minimum_fxs = fx_best.detach().cpu()
@@ -618,7 +631,7 @@ class Bounce:
             )
             factor **= self.batch_size
             factor = np.clip(factor, a_min=1e-10, a_max=None)
-            logging.debug(
+            logging.info(
                 f"🔎 Adjusting trust region by factor {factor.item():.3f}. Remaining budget: {remaining_budget}"
             )
             update_tr_state(
@@ -628,7 +641,7 @@ class Bounce:
                 adjustment_factor=factor,
             )
 
-            logging.debug(
+            logging.info(
                 f"📏 Trust region has length {tr.length_discrete_continuous:.3f} and minium l {tr.length_min_discrete:.3f}"
             )
 
@@ -649,7 +662,8 @@ class Bounce:
                     # Full dim is not reached yet
                     logging.info(f"✂️ Splitting trust region")
                     print(f"✂️ Splitting trust region")
-
+                    print(f"✅ old target dim : {self.random_embedding.target_dim}")
+                    
                     index_mapping = self.random_embedding.split(
                         self.number_new_bins_on_split
                     )
@@ -657,7 +671,9 @@ class Bounce:
                     # move data to higher-dimensional space
                     self.x_tr = join_data(self.x_tr, index_mapping)
                     self.x_global = join_data(self.x_global, index_mapping)
-
+                    
+                    print(f"✅ splitted x_tr shape : {self.x_tr.shape}")
+                    
                     self.trust_region = TrustRegion(
                         dimensionality=self.random_embedding.target_dim
                     )
