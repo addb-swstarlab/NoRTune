@@ -21,15 +21,15 @@ BOUNCE_PARAM = {
                 "number_initial_points": 10,
                 "initial_target_dimensionality": 5,
                 "number_new_bins_on_split": 2,
-                "maximum_number_evaluations": 30, # 200
+                "maximum_number_evaluations": 50, # 200
                 "batch_size" : 1,
                 "results_dir" : "results",
-                "maximum_number_evaluations_until_input_dim" : 15, # 100
+                "maximum_number_evaluations_until_input_dim" : 50, # 100
                 "dtype" : "float64",
                 "use_scipy_lbfgs" : True
                 }
 
-TRUSTREGION_PARAM = {"length_init_discrete": 10}
+TRUSTREGION_PARAM = {"length_init_discrete": 40} # 40
 
 GP_PARAM = {
             "lengthscale_prior_shape" : 1.5, # 3
