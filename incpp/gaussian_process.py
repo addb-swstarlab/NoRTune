@@ -59,10 +59,12 @@ def get_gp_pp(
 
     assert not discrete_ard, "ARD for discrete parameters is not supported yet"
     assert continuous_ard, "ARD for continuous parameters is always used"
-
-    continuous_dims = np.asarray(
-        [i.item() for b, i in axus.bins_and_indices_of_type(ParameterType.CONTINUOUS)]
-    )
+    continuous_type = axus.bins_and_indices_of_type(ParameterType.CONTINUOUS) +\
+                        axus.bins_and_indices_of_type(ParameterType.NUMERICAL)
+    continuous_dims = np.array([ i.item() for ( _, i ) in continuous_type])
+    # continuous_dims = np.asarray(
+    #     [i.item() for b, i in axus.bins_and_indices_of_type(ParameterType.CONTINUOUS)]
+    # )
     discrete_dims = np.setdiff1d(np.arange(axus.target_dim), continuous_dims)
 
     if len(discrete_dims) == 0:
