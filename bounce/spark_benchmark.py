@@ -80,7 +80,7 @@ class SparkTuning(Benchmark):
                         v = str(v) + p_unit
             
             f.writelines(f'{p}={v}\n')
-            logging.info(f'{p}={v}')
+            # logging.info(f'{p}={v}')
         
         """
         Converting categorical variables in x into the Spark configuration format.
@@ -94,7 +94,7 @@ class SparkTuning(Benchmark):
             v = self.parameters[_].items[cat]
             
             f.writelines(f'{p}={v}\n')
-            logging.info(f'{p}={v}')
+            # logging.info(f'{p}={v}')
             start = end
         
         f.close()
