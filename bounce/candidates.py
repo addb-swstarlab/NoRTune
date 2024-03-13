@@ -53,9 +53,12 @@ def create_candidates_discrete(
     """
 
     # Get the indices of the continuous parameters
-    indices_not_to_optimize = torch.tensor(
-        [i for b, i in axus.bins_and_indices_of_type(ParameterType.CONTINUOUS)]
-    )
+    continuous_type = axus.bins_and_indices_of_type(ParameterType.CONTINUOUS) +\
+                        axus.bins_and_indices_of_type(ParameterType.NUMERICAL)
+    indices_not_to_optimize = torch.tensor([i for b, i in continuous_type])
+    # indices_not_to_optimize = torch.tensor(
+    #     [i for b, i in axus.bins_and_indices_of_type(ParameterType.CONTINUOUS)]
+    # )
 
     # Find the center of the trust region
     x_centers = torch.clone(x_scaled[fx_scaled.argmin(), :]).detach()
