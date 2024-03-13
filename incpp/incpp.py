@@ -126,15 +126,20 @@ class incPP(Bounce):
             # TODO don't use elif True here but check for the exact type
             elif True:
                 # Scale the function values
-
-                continuous_indices = torch.tensor(
-                    [
-                        i
-                        for b, i in axus.bins_and_indices_of_type(
-                            ParameterType.CONTINUOUS
-                        )
-                    ]
-                )
+                ##########--------JIEUN--------##########
+                ## TODO: Unifying data types; numerical and continuous
+                continuous_type = axus.bins_and_indices_of_type(ParameterType.CONTINUOUS) + \
+                                    axus.bins_and_indices_of_type(ParameterType.NUMERICAL) 
+                continuous_indices = torch.tensor([ i for ( _, i ) in continuous_type])
+                # continuous_indices = torch.tensor(
+                #     [
+                #         i
+                #         for b, i in axus.bins_and_indices_of_type(
+                #             ParameterType.CONTINUOUS
+                #         )
+                #     ]
+                # )
+                #########################################
                 x_best = None
                 for _ in tqdm(range(self.n_interleaved), desc="☯ Interleaved steps"):
                     x_best, fx_best, tr_state = create_candidates_discrete(
