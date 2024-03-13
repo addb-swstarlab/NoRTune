@@ -703,17 +703,17 @@ class Bounce:
                     self.trust_region.reset()
 
                     self.sample_init()
-        with lzma.open(os.path.join(self.results_dir, f"results.csv.xz"), "w") as f:
-            np.savetxt(
-                f,
-                np.hstack(
-                    (
-                        self.x_up_global.detach().cpu().numpy(),
-                        self.fx_global.detach().cpu().numpy().reshape(-1, 1),
-                    )
-                ),
-                delimiter=",",
-            )
+            with lzma.open(os.path.join(self.results_dir, f"results.csv.xz"), "w") as f:
+                np.savetxt(
+                    f,
+                    np.hstack(
+                        (
+                            self.x_up_global.detach().cpu().numpy(),
+                            self.fx_global.detach().cpu().numpy().reshape(-1, 1),
+                        )
+                    ),
+                    delimiter=",",
+                )
 
     @property
     def _forecasted_tr_dim(self) -> int:
