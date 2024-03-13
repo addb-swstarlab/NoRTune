@@ -106,4 +106,8 @@ def update_tr_state(
     )
 
     if discrete_terminated or continuous_terminated:
+        print("discrete_terminated: ", discrete_terminated)
+        print(f"{trust_region.length_discrete_continuous - 1e-4} <= {trust_region.length_min_discrete}")
+        print("continuous_terminated: ", continuous_terminated)
+        print(f"{trust_region.length_continuous - 1e-4} <= {trust_region.length_min_continuous}")
         trust_region.terminated = True
