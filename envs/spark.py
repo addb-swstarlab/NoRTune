@@ -51,11 +51,11 @@ class SparkEnv:
         exit_code = os.system(f'ssh {p.MASTER_ADDRESS} "bash --noprofile --norc -c scripts/run_{self.workload}.sh"')
         # exit_code = os.system(f'ssh {p.MASTER_ADDRESS} "bash --noprofile --norc -c scripts/run_bayes.sh"')
         if exit_code > 0:
-            logging.warning("Failed benchmarking!!")
+            logging.warning("💀Failed benchmarking!!")
             logging.warning("UNVALID CONFIGURATION!!")
             self.fail_conf_flag = True
         else:
-            logging.info("Successflly finished benchmarking")
+            logging.info("🎉Successfully finished benchmarking")
             self.fail_conf_flag = False
                         
     def get_results(self) -> float:
@@ -74,3 +74,12 @@ class SparkEnv:
         
         # return float(duration), float(tps)
         return float(duration)
+    
+    # Clear hdfs storages in the remote Spark nodes
+    def clear_spark_storage(self):
+        exit_code = os.system(f'ssh {p.MASTER_ADDRESS} "bash --noprofile --norc -c scripts/clear_hibench.sh"')
+        if exit_code > 0:
+            logging.warning("💀Failed cleaning Spark Storage!!")
+        else:
+            logging.info("🎉Successfully cleaning Spark Storage")
+            
