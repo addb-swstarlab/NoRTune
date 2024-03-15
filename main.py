@@ -89,6 +89,8 @@ def main():
     
     # gin.parse_config_files_and_bindings(args.gin_files, args.gin_bindings)
 
+    env = None
+    
     match args.method:
         case "bounce":
             env = SparkEnv(workload=args.workload)
@@ -105,13 +107,17 @@ def main():
             assert False, "The method is not defined.. Choose in [bounce, random]"
     
     tuner.run()
-    # bounce = Bounce()
     
-    # bounce.run()
-
-    # gin.clear_config()
     now = time.time()
     logger.info(f"Total time: {now - then:.2f} seconds")
+    
+    if env is not None:
+        env.clear_spark_storage()
+    else: 
+        # the case for random search module
+        benchmark.clear_spark_storage()
+    
+
 
 if __name__ == "__main__":
     try:
