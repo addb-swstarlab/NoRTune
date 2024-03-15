@@ -58,6 +58,7 @@ class Bounce:
         max_lbfgs_iters: Optional[int] = None,
         min_cuda: int = 10,
         n_interleaved: int = 5,
+        noise_free: bool = False
     ):
         """
         Init
@@ -435,9 +436,16 @@ class Bounce:
 
         while self._n_evals <= self.maximum_number_evaluations:
             axus = self.random_embedding
-            x = self.x_tr
-            fx = self.fx_tr
-
+            
+            # Remove failed data
+            mask = self.fx_tr != 10000
+            
+            x = self.x_tr[mask]
+            fx = self.fx_tr[mask]
+            
+            # x = self.x_tr
+            # fx = self.fx_tr
+            
             # normalize data
             mean = torch.mean(fx)
             std = torch.std(fx)
@@ -662,6 +670,7 @@ class Bounce:
                     # Full dim is not reached yet
                     logging.info(f"✂️ Splitting trust region")
                     print(f"✂️ Splitting trust region")
+                    logging.info(f"✅ old target dim : {self.random_embedding.target_dim}")
                     print(f"✅ old target dim : {self.random_embedding.target_dim}")
                     
                     index_mapping = self.random_embedding.split(
@@ -672,6 +681,7 @@ class Bounce:
                     self.x_tr = join_data(self.x_tr, index_mapping)
                     self.x_global = join_data(self.x_global, index_mapping)
                     
+                    logging.info(f"✅ splitted x_tr shape : {self.x_tr.shape}")
                     print(f"✅ splitted x_tr shape : {self.x_tr.shape}")
                     
                     self.trust_region = TrustRegion(
