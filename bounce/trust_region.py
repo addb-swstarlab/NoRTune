@@ -1,4 +1,5 @@
 import math
+import logging
 
 import numpy as np
 import torch
@@ -73,6 +74,7 @@ def update_tr_state(
 
     """
     if fx_next >= fx_incumbent - 1e-3 * math.fabs(fx_incumbent):
+        logging.info("🔼 Trust region has expanded.")
         trust_region.length_discrete_continuous = (
             trust_region.length_discrete_continuous * adjustment_factor.item()
         )
@@ -84,6 +86,7 @@ def update_tr_state(
             trust_region.length_continuous * adjustment_factor.item()
         )
     else:
+        logging.info("🔽 Trust region has shrunk.")
         trust_region.length_discrete_continuous = min(
             trust_region.length_discrete_continuous / adjustment_factor.item(),
             trust_region.length_max_discrete,
@@ -106,8 +109,14 @@ def update_tr_state(
     )
 
     if discrete_terminated or continuous_terminated:
-        print("discrete_terminated: ", discrete_terminated)
-        print(f"{trust_region.length_discrete_continuous - 1e-4} <= {trust_region.length_min_discrete}")
-        print("continuous_terminated: ", continuous_terminated)
-        print(f"{trust_region.length_continuous - 1e-4} <= {trust_region.length_min_continuous}")
+        if discrete_terminated:
+            print("discrete_terminated: ", discrete_terminated)
+            print(f"{trust_region.length_discrete_continuous - 1e-4} <= {trust_region.length_min_discrete}")
+            logging.info("discrete_terminated: ", discrete_terminated)
+            logging.info(f"{trust_region.length_discrete_continuous - 1e-4} <= {trust_region.length_min_discrete}")
+        else:
+            print("continuous_terminated: ", continuous_terminated)
+            print(f"{trust_region.length_continuous - 1e-4} <= {trust_region.length_min_continuous}")
+            logging.info("continuous_terminated: ", continuous_terminated)
+            logging.info(f"{trust_region.length_continuous - 1e-4} <= {trust_region.length_min_continuous}")
         trust_region.terminated = True
