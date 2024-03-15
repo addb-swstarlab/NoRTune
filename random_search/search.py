@@ -40,10 +40,10 @@ class RandomSearch: # Random Optimizer?
                 res_.append(self.benchmark.get_results()) 
             res = mean(res_)
            
-            logging.info(f"[{i}/{self.maximum_number_evaluations}]!!!!!!!!!!!!!!Results:{res}!!!!!!!!!!!!!!")
+            logging.info(f"[{i}/{self.maximum_number_evaluations}]!!!!!!!!!!!!!!Results:{res:.3f}!!!!!!!!!!!!!!")
             
             if res < best_res:
-                logging.info(f"## Best result is updated!! : {best_res} --> {res}")
+                logging.info(f"🎉 Best result is updated!! : {best_res:.3f} --> {res:.3f}")
                 best_res = res
                 
                 # best_config = sampled_config
