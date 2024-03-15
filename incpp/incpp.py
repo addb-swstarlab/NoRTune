@@ -50,8 +50,15 @@ class incPP(Bounce):
 
         while self._n_evals <= self.maximum_number_evaluations:
             axus = self.random_embedding
-            x = self.x_tr
-            fx = self.fx_tr
+            
+            # Remove failed data
+            mask = self.fx_tr != 10000
+            
+            x = self.x_tr[mask]
+            fx = self.fx_tr[mask]
+            
+            # x = self.x_tr
+            # fx = self.fx_tr
 
             # normalize data
             mean = torch.mean(fx)
