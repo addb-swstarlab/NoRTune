@@ -129,7 +129,7 @@ class SparkTuning(Benchmark):
                 res_.append(self.get_results())
             mean_res = mean(res_)
             
-            logging.info(f"!!!!!!!!!!!!!!Results:{mean_res}!!!!!!!!!!!!!!")
+            logging.info(f"!!!!!!!!!!!!!!Results:{mean_res:.3f}!!!!!!!!!!!!!!")
             res.append(mean_res)
             
             # self.run_benchmark()
