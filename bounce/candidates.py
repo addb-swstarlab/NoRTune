@@ -29,6 +29,7 @@ def create_candidates_discrete(
     x_bests: Optional[list[torch.Tensor]] = None,
     add_spray_points: bool = True,
     sampler: Optional[SobolQMCNormalSampler] = None,
+    noise_free: bool = False,
 ) -> tuple[torch.Tensor, torch.Tensor, dict]:
     """
     Create candidate points for the next batch.
@@ -45,7 +46,8 @@ def create_candidates_discrete(
         x_bests: The center of the trust region, should be in [0, 1]^d
         add_spray_points: Whether to add spray points (points within hamming distance 1 of the center)
         sampler: The sampler to use for the acquisition function
-
+        noise_free: If in the noise-free case, center is the best solution from observations, 
+                    otherwise in the presence of noise, center is the smallest posterior mean from observations.
 
     Returns:
         The candidate points, the function values at the candidate points, the new GP hyperparameters, and the new trust region state
@@ -61,7 +63,14 @@ def create_candidates_discrete(
     # )
 
     # Find the center of the trust region
-    x_centers = torch.clone(x_scaled[fx_scaled.argmin(), :]).detach()
+    # x_centers = torch.clone(x_scaled[fx_scaled.argmin(), :]).detach()
+    if noise_free:
+        x_centers = torch.clone(x_scaled[fx_scaled.argmin(), :]).detach()
+    else:
+        model.eval()
+        model.likelihood.eval()
+        posterior = model.posterior(x_scaled)
+        x_centers = torch.clone(x_scaled[posterior.mean.argmin(), :]).detach()
     # x_center should be in [0, 1]^d at this point
     x_centers = torch.repeat_interleave(x_centers.unsqueeze(0), batch_size, dim=0)
     if x_bests is not None:
@@ -217,6 +226,7 @@ def create_candidates_continuous(
     indices_to_optimize: Optional[torch.Tensor] = None,
     x_bests: Optional[list[torch.Tensor]] = None,
     sampler: Optional[SobolQMCNormalSampler] = None,
+    noise_free: bool = False,
 ) -> tuple[torch.Tensor, torch.Tensor, dict]:
     """
     Create candidate points for the next batch.
@@ -232,6 +242,8 @@ def create_candidates_continuous(
         indices_to_optimize: The indices of the candidate points to optimize (in case of mixed spaces)
         x_bests: The center of the trust region
         batch_size: int
+        noise_free: If in the noise-free case, center is the best solution from observations, 
+                    otherwise in the presence of noise, center is the smallest posterior mean from observations.
 
     Returns:
         The candidate points, the function values at the candidate points, the new GP hyperparameters, and the new trust region state
@@ -244,7 +256,16 @@ def create_candidates_continuous(
         ~torch.isin(torch.arange(axus.target_dim), indices_to_optimize)
     ]
 
-    x_centers = torch.clone(x_scaled[fx_scaled.argmin(), :]).detach()
+    # Find the center of the trust region
+    # x_centers = torch.clone(x_scaled[fx_scaled.argmin(), :]).detach()
+    if noise_free:
+        x_centers = torch.clone(x_scaled[fx_scaled.argmin(), :]).detach()
+    else:
+        model.eval()
+        model.likelihood.eval()
+        posterior = model.posterior(x_scaled)
+        x_centers = torch.clone(x_scaled[posterior.mean.argmin(), :]).detach()
+
     # repeat x_centers batch_size many times
     x_centers = torch.repeat_interleave(x_centers.unsqueeze(0), batch_size, dim=0)
 
