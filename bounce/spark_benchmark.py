@@ -100,7 +100,8 @@ class SparkTuning(Benchmark):
         f.close()
         
     def apply_and_run_configuration(self):
-        self.env.apply_and_run_configuration()
+        self.env.apply_configuration()
+        self.env.run_configuration()
     
     def get_results(self) -> float:
         return self.env.get_results()
