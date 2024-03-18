@@ -73,6 +73,10 @@ class SparkBench(SparkEnv):
     def random_sampling_configuration(self) -> Configuration:
         return self.spark_cs.sample_configuration()
     
+    def apply_and_run_configuration(self):
+        self.apply_configuration()
+        self.run_configuration()
+    
     # def apply_and_run_configuration(self):
     #     logging.info("Applying created configuration to the remote Spark server..")
     #     os.system(f'scp {self.config_path} {p.MASTER_ADDRESS}:{p.MASTER_CONF_PATH}')
