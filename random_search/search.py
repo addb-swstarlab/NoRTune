@@ -5,11 +5,12 @@ from statistics import mean
 # from random_search.benchmarks import SparkBench
 from envs.utils import get_foldername
 from envs.params import BOUNCE_PARAM as bp, BENCHMARKING_REPETITION
+from random_search.benchmarks import SparkBench
 
 class RandomSearch: # Random Optimizer?
     def __init__(
         self,
-        benchmark,
+        benchmark : SparkBench,
         maximum_number_evaluations: int = bp["maximum_number_evaluations"] # 100
     ):
         # self.benchmark = benchmark if benchmark is not None else SparkBench()
@@ -67,3 +68,5 @@ class RandomSearch: # Random Optimizer?
         for l in best_config:
             logging.info(l)
         logging.info("......................")
+        
+        self.benchmark.calculate_improvement_from_default(best_res)
