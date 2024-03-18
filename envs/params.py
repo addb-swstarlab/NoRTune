@@ -6,11 +6,12 @@ PROJECT_NAME = 'SparkTuning'
 
 SPARK_CONF_INFO_CSV_PATH = os.path.join(HOME_PATH, PROJECT_NAME, 'data/Spark_3.1_45_parameters.csv')
 SPARK_CONF_PATH = os.path.join(HOME_PATH, PROJECT_NAME, 'data/add-spark.conf')
+SPARK_DEFAULT_CONF_PATH = os.path.join(HOME_PATH, PROJECT_NAME, 'data/def-spark.conf')
 
 DATA_FOLDER_PATH = os.path.join(HOME_PATH, PROJECT_NAME, 'data')
 
 MASTER_ADDRESS = GCP_SPARK_MASTER_ADDRESS
-MASTER_CONF_PATH = os.path.join(HOME_PATH, 'HiBench/conf')
+MASTER_CONF_PATH = os.path.join(HOME_PATH, 'HiBench/conf/add-spark.conf')
 # MASTER_BENCH_BASH = os.path.join(HOME_PATH, 'scripts/run_terasort.sh')
 
 HIBENCH_REPORT_PATH = os.path.join(HOME_PATH, PROJECT_NAME, 'data/hibench.report')
@@ -21,7 +22,7 @@ BOUNCE_PARAM = {
                 "number_initial_points": 10,
                 "initial_target_dimensionality": 5,
                 "number_new_bins_on_split": 2,
-                "maximum_number_evaluations": 50, # 200
+                "maximum_number_evaluations": 5, # 50, # 200
                 "batch_size" : 1,
                 "results_dir" : "results",
                 "maximum_number_evaluations_until_input_dim" : 50, # 100
