@@ -1,4 +1,5 @@
 import os
+import torch
 import logging
 import pandas as pd
 
@@ -24,6 +25,7 @@ class SparkEnv:
         
         if alter:
             self._alter_hibench_configuration()
+            self._get_result_from_default_configuration()
         
     def _alter_hibench_configuration(self):
         workload_size = {
@@ -46,7 +48,7 @@ class SparkEnv:
         config_path = self.config_path if config_path is None else config_path
         
         logging.info("Applying created configuration to the remote Spark server.. 💨💨")
-        os.system(f'scp {config_path} {p.MASTER_ADDRESS}:{p.MASTER_CONF_PATH}')
+        os.system(f'scp {config_path} {p.MASTER_ADDRESS}:{p.MASTER_CONF_PATH}/add-spark.conf')
         
     def run_configuration(self):
         """
@@ -77,7 +79,7 @@ class SparkEnv:
             
             duration = report[-1].split()[-3]
             tps = report[-1].split()[-2]
-        
+        logging.info(f"The recorded results are.. Duration: {duration} s Throughput: {tps} bytes/s")
         # return float(duration), float(tps)
         return float(duration)
     
@@ -89,9 +91,10 @@ class SparkEnv:
         else:
             logging.info("🎉Successfully cleaning Spark Storage")
     
-
     # Get the result of default configuration..
-    def _get_result_from_default_configuration(self) -> float: 
+    def _get_result_from_default_configuration(self): 
+        logging.info("💻Benchmarking the default configuration...")
+        # This default configuration occurs an error in benchmarking
         self.apply_configuration(config_path=p.SPARK_DEFAULT_CONF_PATH)
         
         res_ = []
@@ -99,12 +102,15 @@ class SparkEnv:
             self.run_configuration()
             res_.append(self.get_results())
             
-        def_res = mean(res_)
-
-        return def_res
+        self.def_res = mean(res_)
+        logging.info(f"Default duration (s) is {self.def_res}")
     
     def calculate_improvement_from_default(self, best_fx):
-        default_fx = self._get_result_from_default_configuration()
+        # default_fx = self._get_result_from_default_configuration()
+        default_fx = self.def_res
+        if isinstance(best_fx, torch.Tensor):
+            best_fx = best_fx.item()
+            
         improve_ratio = round((default_fx - best_fx)/default_fx * 100, 2)
         logging.info("=============================================================")
         logging.info(f"🎯 Improvement rate from default results.. {improve_ratio}%")
