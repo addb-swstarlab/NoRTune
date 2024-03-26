@@ -203,12 +203,13 @@ class Bounce:
                 self.number_new_bins_on_split + 1,
             )
         )
-
-        if settings.ADJUST_NUMBER_OF_NEW_BINS:
-            self._adjust_number_bins_on_split()
+        
         logging.info(f"🤖 {settings.NAME} will split at most {self._n_splits} times.")
         print(f"🤖 {settings.NAME} will split at most {self._n_splits} times.")
         
+        if settings.ADJUST_NUMBER_OF_NEW_BINS:
+            self._adjust_number_bins_on_split()
+
         self.split_budget = self._split_budget(self.initial_target_dimensionality)
         logging.info(f"✅ The split budget for {self.initial_target_dimensionality} dims is {self.split_budget}")
         print(f"[bounce.py 213] ✅ The split budget for {self.initial_target_dimensionality} dims is {self.split_budget}")
