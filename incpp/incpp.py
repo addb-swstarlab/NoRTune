@@ -22,20 +22,28 @@ from bounce.util.data_handling import (
 )
 from bounce.util.printing import BColors
 
-from incpp.gaussian_process import fit_mll, get_gp_pp
+from incpp.gaussian_process import fit_mll, get_gp
 
 class incPP(Bounce):
     def __init__(self,
                  benchmark: Benchmark,
                  neighbor_distance: float = 0.01,
-                 pseudo_point: bool = True
+                 pseudo_point: bool = True,
+                 bin: int = 2,
+                 n_init: int = 10,
+                 max_eval: int = 50,
                  ):
     
         self.benchmark = benchmark
         self.pseudo_point = pseudo_point
         self.neighbor_distance = neighbor_distance
         
-        super().__init__(benchmark=self.benchmark)
+        # TODO: after analyzing bins, revise here
+        super().__init__(benchmark=self.benchmark, 
+                         number_new_bins_on_split=bin, 
+                         number_initial_points=n_init,
+                         maximum_number_evaluations=max_eval,
+                         )
         
     def run(self):
         """
@@ -73,11 +81,12 @@ class incPP(Bounce):
                 x_scaled = x_scaled.to(self.device)
 
             # Select the kernel
-            model, train_x, train_fx = get_gp_pp(
+            model, train_x, train_fx = get_gp(
                 axus=axus,
                 x=x_scaled,
                 fx=-fx_scaled,
-                neighbor_distance=self.neighbor_distance
+                neighbor_distance=self.neighbor_distance,
+                pseudo_point_mode=self.pseudo_point
             )
 
             use_scipy_lbfgs = self.use_scipy_lbfgs and (
