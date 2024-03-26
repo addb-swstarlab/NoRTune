@@ -70,7 +70,9 @@ def create_candidates_discrete(
         model.eval()
         model.likelihood.eval()
         posterior = model.posterior(x_scaled)
-        x_centers = torch.clone(x_scaled[posterior.mean.argmin(), :]).detach()
+        # GP has been trained to predict negative values of fx.. thus, a maximum from posterior means gets the best results..
+        # Not argmin, but argmax..!
+        x_centers = torch.clone(x_scaled[posterior.mean.argmax(), :]).detach()
     # x_center should be in [0, 1]^d at this point
     x_centers = torch.repeat_interleave(x_centers.unsqueeze(0), batch_size, dim=0)
     if x_bests is not None:
@@ -264,7 +266,9 @@ def create_candidates_continuous(
         model.eval()
         model.likelihood.eval()
         posterior = model.posterior(x_scaled)
-        x_centers = torch.clone(x_scaled[posterior.mean.argmin(), :]).detach()
+        # GP has been trained to predict negative values of fx.. thus, a maximum from posterior means gets the best results..
+        # Not argmin, but argmax..!        
+        x_centers = torch.clone(x_scaled[posterior.mean.argmax(), :]).detach()
 
     # repeat x_centers batch_size many times
     x_centers = torch.repeat_interleave(x_centers.unsqueeze(0), batch_size, dim=0)
