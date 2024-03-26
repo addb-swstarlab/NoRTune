@@ -1,13 +1,13 @@
 from bounce.benchmarks import Benchmark
 from bounce.util.benchmark import Parameter, ParameterType
 from envs.params import BENCHMARKING_REPETITION
-
+from envs.spark import SparkEnv
 import torch
 import logging
 from statistics import mean
 
 class SparkTuning(Benchmark):
-    def __init__(self, env):
+    def __init__(self, env: SparkEnv):
         self.env = env
         self.n_features = len(self.env.dict_data)
         logging.info(f"n_features: {self.n_features}")
