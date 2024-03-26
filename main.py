@@ -39,12 +39,39 @@ def main():
         choices=["aggregation", "join", "scan", "wordcount", "terasort", "bayes", "kmeans", "pagerank"],
         default="join"
     )
+    # =======For evaluating modules developed currently=======    
     parser.add_argument(
         "--neighbor",
         type=float,
-        default=0.03
+        default=0.03,
+        help='[BO-PP] adjusting a degree of distances from neighbors'
     )
-
+    parser.add_argument(
+        "--wo_bopp",
+        action='store_false',
+        help='[BO-PP] If you want to run without a BO-PP module, trigger this'
+    )
+    parser.add_argument(
+        "--bin",
+        type=int,
+        default=2,
+        help='[Bounce] adjusting the number of new bins on splitting'
+    )
+    parser.add_argument(
+        "--n_init",
+        type=int,
+        default=10,
+        help='[Bounce] adjusting init sampling sizes'
+    )
+    parser.add_argument(
+        "--max_eval",
+        type=int,
+        default=80,
+        help='[Bounce] adjusting init sampling sizes'
+    )
+    
+    # ========================================================
+    
     args = parser.parse_args()
     
     logging.basicConfig(
@@ -102,7 +129,13 @@ def main():
         case "incpp":
             env = SparkEnv(workload=args.workload)
             benchmark = SparkTuning(env=env)
-            tuner = incPP(benchmark=benchmark, neighbor_distance=args.neighbor)
+            tuner = incPP(benchmark=benchmark, 
+                          neighbor_distance=args.neighbor, 
+                          pseudo_point=args.wo_bopp,
+                          bin=args.bin,
+                          n_init=args.n_init,
+                          max_eval=args.max_eval,
+                          )
         case _:
             assert False, "The method is not defined.. Choose in [bounce, random]"
     
