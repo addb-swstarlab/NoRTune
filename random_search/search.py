@@ -65,8 +65,9 @@ class RandomSearch: # Random Optimizer?
         logging.info("........Best results........")
         logging.info(f"{best_res} s")
         logging.info(".....Best Configuration.....")
-        for l in best_config:
-            logging.info(l)
+        logging.info(''.join(best_config))
+        # for l in best_config:
+        #     logging.info(l)
         logging.info("......................")
         
         self.benchmark.calculate_improvement_from_default(best_res)
