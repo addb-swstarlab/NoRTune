@@ -16,6 +16,7 @@ from envs.utils import get_logger
 from envs.spark import SparkEnv
 
 from envs.params import print_params
+from envs.params import BOUNCE_PARAM as bp
 
 logger = get_logger()
 os.system('clear')
@@ -66,10 +67,15 @@ def main():
     parser.add_argument(
         "--max_eval",
         type=int,
-        default=80,
+        default=bp["maximum_number_evaluations"],
         help='[Bounce] adjusting init sampling sizes'
     )
-    
+    parser.add_argument(
+        "--max_eval_until_input",
+        type=int,
+        default=bp["maximum_number_evaluations_until_input_dim"],
+        help='[Bounce] adjusting init sampling sizes until reaching input dimensions'
+    )    
     # ========================================================
     
     args = parser.parse_args()
@@ -125,7 +131,8 @@ def main():
             tuner = Bounce(benchmark=benchmark)
         case "random":            
             benchmark = SparkBench(workload=args.workload)
-            tuner = RandomSearch(benchmark=benchmark)
+            tuner = RandomSearch(benchmark=benchmark,
+                                 maximum_number_evaluations=args.max_eval)
         case "incpp":
             env = SparkEnv(workload=args.workload)
             benchmark = SparkTuning(env=env)
@@ -135,6 +142,7 @@ def main():
                           bin=args.bin,
                           n_init=args.n_init,
                           max_eval=args.max_eval,
+                          max_eval_until_input=args.max_eval_until_input,
                           )
         case _:
             assert False, "The method is not defined.. Choose in [bounce, random]"
