@@ -73,6 +73,7 @@ def create_candidates_discrete(
         # GP has been trained to predict negative values of fx.. thus, a maximum from posterior means gets the best results..
         # Not argmin, but argmax..!
         x_centers = torch.clone(x_scaled[posterior.mean.argmax(), :]).detach()
+        del posterior
     # x_center should be in [0, 1]^d at this point
     x_centers = torch.repeat_interleave(x_centers.unsqueeze(0), batch_size, dim=0)
     if x_bests is not None:
@@ -208,10 +209,25 @@ def create_candidates_discrete(
     # transform to [-1, 1], was [0, 1]
     x_batch_return = x_batch_return * 2 - 1
 
-    tr_state = {
-        "center": x_scaled[fx_scaled.argmin(), :].detach().cpu().numpy().reshape(1, -1),
-        "length": np.array([trust_region.length_discrete]),
-    }
+    if noise_free:
+        tr_state = {
+            "center": x_scaled[fx_scaled.argmin(), :].detach().cpu().numpy().reshape(1, -1),
+            "length": np.array([trust_region.length_discrete]),
+        }
+    else:
+        model.eval()
+        model.likelihood.eval()
+        posterior = model.posterior(x_scaled)
+        tr_state = {
+            "center": x_scaled[posterior.mean.argmax(), :].detach().cpu().numpy().reshape(1, -1),
+            "length": np.array([trust_region.length_discrete]),
+        }
+        del posterior
+
+    # tr_state = {
+    #     "center": x_scaled[fx_scaled.argmin(), :].detach().cpu().numpy().reshape(1, -1),
+    #     "length": np.array([trust_region.length_discrete]),
+    # }
 
     return x_batch_return, fx_batch_return.reshape(batch_size), tr_state
 
@@ -269,6 +285,7 @@ def create_candidates_continuous(
         # GP has been trained to predict negative values of fx.. thus, a maximum from posterior means gets the best results..
         # Not argmin, but argmax..!        
         x_centers = torch.clone(x_scaled[posterior.mean.argmax(), :]).detach()
+        del posterior
 
     # repeat x_centers batch_size many times
     x_centers = torch.repeat_interleave(x_centers.unsqueeze(0), batch_size, dim=0)
@@ -318,12 +335,31 @@ def create_candidates_continuous(
                 sampler is not None
             ), "Either acquisition_function or sampler must be provided"
             x_pending = x_cand_downs[:batch_index, :] if batch_index > 0 else None
-            _acquisition_function = qExpectedImprovement(
-                model=model,
-                best_f=(-fx_scaled).max().item(),
-                sampler=sampler,
-                X_pending=x_pending,
-            )
+            
+            if noise_free:
+                _acquisition_function = qExpectedImprovement(
+                    model=model,
+                    best_f=(-fx_scaled).max().item(),
+                    sampler=sampler,
+                    X_pending=x_pending,
+                )
+            else:
+                model.eval()
+                model.likelihood.eval()
+                posterior = model.posterior(x_scaled)
+                _acquisition_function = qExpectedImprovement(
+                    model=model,
+                    best_f=posterior.mean.max().item(),
+                    sampler=sampler,
+                    X_pending=x_pending,
+                )
+                del posterior
+            # _acquisition_function = qExpectedImprovement(
+            #     model=model,
+            #     best_f=(-fx_scaled).max().item(),
+            #     sampler=sampler,
+            #     X_pending=x_pending,
+            # )
 
         # EI-based acquisition function
         x_cand_down = optimize_acqf(
@@ -340,12 +376,30 @@ def create_candidates_continuous(
         x_cand_downs[batch_index, :] = x_cand_down
         fx_argmins[batch_index] = -y_cand_down
 
-    tr_state = {
-        "center": x_scaled[fx_scaled.argmin(), :].detach().cpu().numpy().reshape(1, -1),
-        "length": np.array([trust_region.length_continuous]),
-        "lb": tr_lb.detach().cpu().numpy(),
-        "ub": tr_ub.detach().cpu().numpy(),
-    }
+    if noise_free:
+        tr_state = {
+            "center": x_scaled[fx_scaled.argmin(), :].detach().cpu().numpy().reshape(1, -1),
+            "length": np.array([trust_region.length_continuous]),
+            "lb": tr_lb.detach().cpu().numpy(),
+            "ub": tr_ub.detach().cpu().numpy(),
+        }
+    else:
+        model.eval()
+        model.likelihood.eval()
+        posterior = model.posterior(x_scaled)
+        tr_state = {
+            "center": x_scaled[posterior.mean.argmax(), :].detach().cpu().numpy().reshape(1, -1),
+            "length": np.array([trust_region.length_continuous]),
+            "lb": tr_lb.detach().cpu().numpy(),
+            "ub": tr_ub.detach().cpu().numpy(),
+        }
+        del posterior
+    # tr_state = {
+    #     "center": x_scaled[fx_scaled.argmin(), :].detach().cpu().numpy().reshape(1, -1),
+    #     "length": np.array([trust_region.length_continuous]),
+    #     "lb": tr_lb.detach().cpu().numpy(),
+    #     "ub": tr_ub.detach().cpu().numpy(),
+    # }
 
     return x_cand_downs * 2 - 1, fx_mins.reshape(batch_size), tr_state
 
