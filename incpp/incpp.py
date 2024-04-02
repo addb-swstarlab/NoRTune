@@ -10,19 +10,26 @@ from torch import Size
 from tqdm import tqdm
 
 from bounce.bounce import Bounce
+from bounce.util.printing import BColors
 from bounce.benchmarks import Benchmark
+from bounce.projection import Bin
 from bounce.candidates import create_candidates_continuous, create_candidates_discrete
 from botorch.acquisition import ExpectedImprovement
 from botorch.sampling import SobolQMCNormalSampler
 from bounce.trust_region import TrustRegion, update_tr_state
 from bounce.util.benchmark import ParameterType
 from bounce.util.data_handling import (
+    construct_mixed_point,
     from_1_around_origin,
     join_data,
+    sample_binary,
+    sample_categorical,
+    sample_continuous,
+    sample_numerical,
 )
-from bounce.util.printing import BColors
 
 from incpp.gaussian_process import fit_mll, get_gp
+from envs.params import BENCHMARKING_REPETITION
 
 class incPP(Bounce):
     def __init__(self,
@@ -32,18 +39,110 @@ class incPP(Bounce):
                  bin: int = 2,
                  n_init: int = 10,
                  max_eval: int = 50,
+                 max_eval_until_input: int = 45,
+                 noise_free: bool = False
                  ):
     
         self.benchmark = benchmark
         self.pseudo_point = pseudo_point
         self.neighbor_distance = neighbor_distance
+        self.noise_free = noise_free
         
         # TODO: after analyzing bins, revise here
         super().__init__(benchmark=self.benchmark, 
                          number_new_bins_on_split=bin, 
                          number_initial_points=n_init,
                          maximum_number_evaluations=max_eval,
+                         maximum_number_evaluations_until_input_dim=max_eval_until_input,
                          )
+
+    def sample_init(self):
+        """
+        Samples the initial points, evaluates them, and adds them to the observations.
+        Increases the number of evaluations by the number of initial points.
+
+        Returns:
+            None
+
+        """
+        types_points_and_indices = {pt: (None, None) for pt in ParameterType}
+        # sample initial points for each parameter type present in the benchmark
+        for parameter_type in self.benchmark.unique_parameter_types:
+            # find number of parameters of type parameter_type
+            bins_of_type: list[Bin] = self.random_embedding.bins_of_type(parameter_type)
+            indices_of_type = torch.concat(
+                [
+                    self.random_embedding.bins_and_indices_of_type(parameter_type)[i][1]
+                    for i in range(len(bins_of_type))
+                ]
+            )
+            match parameter_type:
+                case ParameterType.BINARY:
+                    _x_init = sample_binary(
+                        number_of_samples=self.number_initial_points,
+                        bins=bins_of_type,
+                    )
+                case ParameterType.CONTINUOUS:
+                    _x_init = sample_continuous(
+                        number_of_samples=self.number_initial_points,
+                        bins=bins_of_type,
+                    )
+                ##########--------JIEUN--------##########
+                case ParameterType.NUMERICAL:
+                    _x_init = sample_numerical(
+                        number_of_samples=self.number_initial_points,
+                        bins=bins_of_type,
+                    )
+                #########################################
+                case ParameterType.CATEGORICAL:
+                    _x_init = sample_categorical(
+                        number_of_samples=self.number_initial_points,
+                        bins=bins_of_type,
+                    )
+                case ParameterType.ORDINAL:
+                    raise NotImplementedError(
+                        "Ordinal parameters are not supported yet."
+                    )
+                case _:
+                    raise ValueError(f"Unknown parameter type {parameter_type}.")
+            types_points_and_indices[parameter_type] = (_x_init, indices_of_type)
+
+        ##########--------JIEUN--------##########
+        x_init = construct_mixed_point(
+            size=self.number_initial_points,
+            binary_indices=types_points_and_indices[ParameterType.BINARY][1],
+            continuous_indices=types_points_and_indices[ParameterType.CONTINUOUS][1],
+            numerical_indices=types_points_and_indices[ParameterType.NUMERICAL][1],
+            categorical_indices=types_points_and_indices[ParameterType.CATEGORICAL][1],
+            ordinal_indices=types_points_and_indices[ParameterType.ORDINAL][1],
+            x_binary=types_points_and_indices[ParameterType.BINARY][0],
+            x_continuous=types_points_and_indices[ParameterType.CONTINUOUS][0],
+            x_numerical=types_points_and_indices[ParameterType.NUMERICAL][0],
+            x_categorical=types_points_and_indices[ParameterType.CATEGORICAL][0],
+            x_ordinal=types_points_and_indices[ParameterType.ORDINAL][0],
+        )
+        #########################################
+        
+        if self.noise_free:
+            pass
+        else:
+            # To obtain mutiple results from each configuration, considering "noisy" environments.
+            x_init = x_init.repeat(BENCHMARKING_REPETITION, 1)
+        
+        x_init_up = from_1_around_origin(
+            x=self.random_embedding.project_up(x_init.T).T,
+            lb=self.benchmark.lb_vec,
+            ub=self.benchmark.ub_vec,
+        )
+        fx_init = self.benchmark(x_init_up)
+
+        self._add_data_to_tr_observations(
+            xs_down=x_init, # [n, target_dim] target configs converted from original configs
+            xs_up=x_init_up, # [n, original_dim] original configs
+            fxs=fx_init,
+        )
+
+        self._n_evals += self.number_initial_points
         
     def run(self):
         """
@@ -109,9 +208,20 @@ class incPP(Bounce):
                 sampler = SobolQMCNormalSampler(Size([1024]), seed=self._n_evals)
             else:
                 # use analytical EI for batch size 1
-                acquisition_function = ExpectedImprovement(
-                    model=model, best_f=(-fx_scaled).max().item()
-                )
+                # acquisition_function = ExpectedImprovement(
+                #     model=model, best_f=(-fx_scaled).max().item()
+                # )
+                if self.noise_free:
+                    acquisition_function = ExpectedImprovement(
+                        model=model, best_f=(-fx_scaled).max().item()
+                    ) 
+                else:
+                    model.eval()
+                    model.likelihood.eval()
+                    posterior = model.posterior(x_scaled)
+                    acquisition_function = ExpectedImprovement(
+                        model=model, best_f=posterior.mean.max().item()
+                    )
 
             if self.benchmark.is_discrete:
                 x_best, fx_best, tr_state = create_candidates_discrete(
@@ -124,6 +234,7 @@ class incPP(Bounce):
                     batch_size=self.batch_size,
                     acquisition_function=acquisition_function,
                     sampler=sampler,
+                    noise_free=self.noise_free
                 )
                 fx_best = fx_best * std + mean
             elif self.benchmark.is_continuous:
@@ -137,6 +248,7 @@ class incPP(Bounce):
                     device=self.device,
                     batch_size=self.batch_size,
                     sampler=sampler,
+                    noise_free=self.noise_free
                 )
                 fx_best = fx_best * std + mean
             # TODO don't use elif True here but check for the exact type
@@ -171,7 +283,14 @@ class incPP(Bounce):
                         sampler=sampler,
                     )
                     x_best = x_best.reshape(-1, axus.target_dim)
-                    true_center = x[fx.argmin()]
+                    # true_center = x[fx.argmin()]
+                    if self.noise_free:
+                        true_center = x[fx.argmin()]
+                    else:
+                        model.eval()
+                        model.likelihood.eval()
+                        true_center = x[model.posterior(x_scaled).mean.argmax()]
+                        
                     x_best[:, continuous_indices] = true_center[continuous_indices].to(
                         device=x_best.device
                     )
@@ -234,12 +353,34 @@ class incPP(Bounce):
                 fx_batches[col[0]] = torch.inf
 
             # Sample on the candidate points
-            y_next = self.benchmark(cand_batch)
+            # y_next = self.benchmark(cand_batch)
+            if self.noise_free:
+                y_next = self.benchmark(cand_batch)
+                min_y_next = torch.min(y_next)
+            else:
+                # cand_batch: torch.Tensor == xs_high_dim: List([torch.Tensor]) -> [n, representation_dim]
+                y_next = self.benchmark(cand_batch.repeat(BENCHMARKING_REPETITION, 1)) # [n*BR, 1]
+                
+                model.eval()
+                model.likelihood.eval()
+                min_y_next = torch.min(-model.posterior(torch.vstack(xs_low_dim)).mean * std + mean) # [1, 1]
 
-            best_fx = self.fx_tr.min()
-            if torch.min(y_next) < best_fx:
+            # *************************************************************** #
+            # TODO: in noisy environments, how can I compare them...?
+            # best_fx = self.fx_tr.min()
+            if self.noise_free:
+                best_fx = self.fx_tr.min()
+            else:
+                model.eval()
+                model.likelihood.eval()
+                best_fx = (- model.posterior(x_scaled).mean * std + mean).min()
+                
+            
+            # if torch.min(y_next) < best_fx:
+            if min_y_next < best_fx:
                 logging.info(
-                    f"✨ Iteration {self._n_evals}: {BColors.OKGREEN}New incumbent function value {y_next.min().item():.3f}{BColors.ENDC}"
+                    # f"✨ Iteration {self._n_evals}: {BColors.OKGREEN}New incumbent function value {y_next.min().item():.3f}{BColors.ENDC}"
+                    f"✨ Iteration {self._n_evals}: {BColors.OKGREEN}New incumbent function value {min_y_next.item():.3f}{BColors.ENDC}"
                 )
             else:
                 logging.info(
@@ -266,8 +407,10 @@ class incPP(Bounce):
             )
             update_tr_state(
                 trust_region=self.trust_region,
-                fx_next=y_next.min(),
-                fx_incumbent=self.fx_tr.min(),
+                # fx_next=y_next.min(),
+                # fx_incumbent=self.fx_tr.min(),
+                fx_next=min_y_next,
+                fx_incumbent=best_fx,
                 adjustment_factor=factor,
             )
 
@@ -280,9 +423,10 @@ class incPP(Bounce):
             )
             self._n_evals += self.batch_size
 
+            
             self._add_data_to_tr_observations(
-                xs_down=torch.vstack(xs_low_dim),
-                xs_up=torch.vstack(xs_high_dim),
+                xs_down=torch.vstack(xs_low_dim) if self.noise_free else torch.vstack(xs_low_dim).repeat(BENCHMARKING_REPETITION, 1),
+                xs_up=torch.vstack(xs_high_dim) if self.noise_free else torch.vstack(xs_high_dim).repeat(BENCHMARKING_REPETITION, 1),
                 fxs=y_next.reshape(-1),
             )
 
@@ -340,6 +484,29 @@ class incPP(Bounce):
                     delimiter=",",
                 )
 
-        self.benchmark.env.calculate_improvement_from_default(best_fx=best_fx)
+        # self.benchmark.env.calculate_improvement_from_default(best_fx=best_fx)
+        
+        self.get_best_solution(model=model)
+        
+    def get_best_solution(self, model):
+        logging.info(f"✨✨✨ Evaluating best x... # of repetitions = {BENCHMARKING_REPETITION} ✨✨✨")
+        
+        x_scaled = (self.x_tr + 1) / 2
+        
+        model.eval()
+        model.likelihood.eval()
+        
+        best_x = self.x_up_tr[model.posterior(x_scaled).argmax(), :]
+        
+        best_ys = []
+        for _ in BENCHMARKING_REPETITION:
+            best_y = self.benchmark(best_x)
+            best_ys.append(best_y)
+        
+        from statistics import mean
+        logging.info(f"Results = {best_ys} , Mean = {mean(best_ys)}")
+        
+        
+        
         
 
