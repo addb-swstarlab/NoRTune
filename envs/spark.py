@@ -25,13 +25,13 @@ class SparkEnv:
         
         if alter:
             self._alter_hibench_configuration()
-            self._get_result_from_default_configuration()
+            # self._get_result_from_default_configuration()
         
     def _alter_hibench_configuration(self):
         workload_size = {
-            'aggregation': 'huge', #'gigantic', #'huge',
-            'join': 'huge', #'huge',
-            'scan': 'huge', #'huge',
+            'aggregation': 'custom', #'gigantic', #'huge',
+            'join': 'custom', #'huge',
+            'scan': 'custom', #'huge',
             'wordcount': 'large',
             'terasort': 'large',
             'bayes': 'huge', #'huge',
