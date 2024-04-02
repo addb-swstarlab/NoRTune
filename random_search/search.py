@@ -31,6 +31,9 @@ class RandomSearch: # Random Optimizer?
         configs = []
         results = []
         
+        repeated_configs = []
+        repeated_results = []
+        
         for i in range(self.maximum_number_evaluations):
             sampled_config = self.benchmark.random_sampling_configuration()
             self.benchmark.save_configuration_file(sampled_config)
@@ -39,9 +42,11 @@ class RandomSearch: # Random Optimizer?
             for _ in range(BENCHMARKING_REPETITION):
                 self.benchmark.apply_and_run_configuration()
                 res_.append(self.benchmark.get_results()) 
+                repeated_configs.append(sampled_config.get_dictionary())
+                repeated_results.append(res_)
             res = mean(res_)
            
-            logging.info(f"[{i}/{self.maximum_number_evaluations}]!!!!!!!!!!!!!!Results:{res:.3f}!!!!!!!!!!!!!!")
+            logging.info(f"[{i}/{self.maximum_number_evaluations}] Results = {res_}, MEAN = {res:.3f}")
             
             if res < best_res:
                 logging.info(f"🎉 Best result is updated!! : {best_res:.3f} --> {res:.3f}")
@@ -49,7 +54,7 @@ class RandomSearch: # Random Optimizer?
                 
                 # best_config = sampled_config
                 f = open('/home/jieun/SparkTuning/data/add-spark.conf', 'r')
-                best_config = f.readlines()    
+                best_config = f.readlines()
                 
             configs.append(sampled_config.get_dictionary())
             results.append(res)
@@ -61,6 +66,13 @@ class RandomSearch: # Random Optimizer?
         with open(os.path.join(self.results_dir, 'results.json'), 'w') as f:
             json.dump(results, f)
                     
+        with open(os.path.join(self.results_dir, 'repeated_configs.json'), 'w') as f:
+            json.dump(repeated_configs, f)
+        
+        with open(os.path.join(self.results_dir, 'repeated_results.json'), 'w') as f:
+            json.dump(repeated_results, f)
+                    
+                    
         logging.info("............................")
         logging.info("........Best results........")
         logging.info(f"{best_res} s")
@@ -70,4 +82,53 @@ class RandomSearch: # Random Optimizer?
         #     logging.info(l)
         logging.info("......................")
         
-        self.benchmark.calculate_improvement_from_default(best_res)
+        # self.benchmark.calculate_improvement_from_default(best_res)    
+    
+    # def run(self):
+    #     logging.info("Start Random Search!!")       
+    #     best_config = None
+    #     best_res = 10000
+        
+    #     configs = []
+    #     results = []
+        
+    #     for i in range(self.maximum_number_evaluations):
+    #         sampled_config = self.benchmark.random_sampling_configuration()
+    #         self.benchmark.save_configuration_file(sampled_config)
+            
+    #         res_ = []
+    #         for _ in range(BENCHMARKING_REPETITION):
+    #             self.benchmark.apply_and_run_configuration()
+    #             res_.append(self.benchmark.get_results()) 
+    #         res = mean(res_)
+           
+    #         logging.info(f"[{i}/{self.maximum_number_evaluations}]!!!!!!!!!!!!!!Results:{res:.3f}!!!!!!!!!!!!!!")
+            
+    #         if res < best_res:
+    #             logging.info(f"🎉 Best result is updated!! : {best_res:.3f} --> {res:.3f}")
+    #             best_res = res
+                
+    #             # best_config = sampled_config
+    #             f = open('/home/jieun/SparkTuning/data/add-spark.conf', 'r')
+    #             best_config = f.readlines()    
+                
+    #         configs.append(sampled_config.get_dictionary())
+    #         results.append(res)
+        
+    #     # Save history.. configs and results
+    #     with open(os.path.join(self.results_dir, 'configs.json'), 'w') as f:
+    #         json.dump(configs, f)
+        
+    #     with open(os.path.join(self.results_dir, 'results.json'), 'w') as f:
+    #         json.dump(results, f)
+                    
+    #     logging.info("............................")
+    #     logging.info("........Best results........")
+    #     logging.info(f"{best_res} s")
+    #     logging.info(".....Best Configuration.....")
+    #     logging.info(''.join(best_config))
+    #     # for l in best_config:
+    #     #     logging.info(l)
+    #     logging.info("......................")
+        
+    #     self.benchmark.calculate_improvement_from_default(best_res)
