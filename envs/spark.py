@@ -28,19 +28,21 @@ class SparkEnv:
             # self._get_result_from_default_configuration()
         
     def _alter_hibench_configuration(self):
-        workload_size = {
-            'aggregation': 'custom', #'gigantic', #'huge',
-            'join': 'custom', #'huge',
-            'scan': 'custom', #'huge',
+        self.workload_size = {
+            'aggregation': 'huge', #'gigantic', #'huge',
+            'join': 'huge', #'huge',
+            'scan': 'huge', #'huge',
             'wordcount': 'large',
-            'terasort': 'large',
+            'terasort': 'large', 
             'bayes': 'huge', #'huge',
             'kmeans': 'large',
-            'pagerank': 'large'
+            'pagerank': 'large',
+            'svm': 'small',
+            'nweight': 'small',
         }
-        HIBENCH_CONF_PATH = os.path.join(p.DATA_FOLDER_PATH, f'{workload_size[self.workload]}_hibench.conf')
+        HIBENCH_CONF_PATH = os.path.join(p.DATA_FOLDER_PATH, f'{self.workload_size[self.workload]}_hibench.conf')
         logging.info("Altering hibench workload scale..")
-        logging.info(f"Workload ***{self.workload}*** need ***{workload_size[self.workload]}*** size..")
+        logging.info(f"Workload ***{self.workload}*** need ***{self.workload_size[self.workload]}*** size..")
         os.system(f'scp {HIBENCH_CONF_PATH} {p.MASTER_ADDRESS}:{p.MASTER_CONF_PATH}/hibench.conf')
 
 
