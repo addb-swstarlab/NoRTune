@@ -48,6 +48,9 @@ class incPP(Bounce):
         self.neighbor_distance = neighbor_distance
         self.noise_free = noise_free
         
+        if self.noise_free:
+            logging.info("⚠️ CAUTION!! This is a noise-free mode!! ⚠️")
+        
         # TODO: after analyzing bins, revise here
         super().__init__(benchmark=self.benchmark, 
                          number_new_bins_on_split=bin, 
@@ -55,6 +58,10 @@ class incPP(Bounce):
                          maximum_number_evaluations=max_eval,
                          maximum_number_evaluations_until_input_dim=max_eval_until_input,
                          )
+        
+        f = open(os.path.join(self.results_dir, 'workload.txt'), 'w')
+        f.writelines(f"{self.benchmark.env.workload} {self.benchmark.env.workload_size[self.benchmark.env.workload]}")
+        f.close()
 
     def sample_init(self):
         """
@@ -496,12 +503,12 @@ class incPP(Bounce):
         model.eval()
         model.likelihood.eval()
         
-        best_x = self.x_up_tr[model.posterior(x_scaled).argmax(), :]
+        best_x = self.x_up_tr[model.posterior(x_scaled).mean.argmax(), :]
         
         best_ys = []
-        for _ in BENCHMARKING_REPETITION:
-            best_y = self.benchmark(best_x)
-            best_ys.append(best_y)
+        for _ in range(BENCHMARKING_REPETITION):
+            best_y = self.benchmark(best_x.unsqueeze(0))
+            best_ys.append(best_y.item())
         
         from statistics import mean
         logging.info(f"Results = {best_ys} , Mean = {mean(best_ys)}")
