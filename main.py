@@ -37,7 +37,7 @@ def main():
     parser.add_argument(
         "--workload",
         type=str,
-        choices=["aggregation", "join", "scan", "wordcount", "terasort", "bayes", "kmeans", "pagerank"],
+        choices=["aggregation", "join", "scan", "wordcount", "terasort", "bayes", "kmeans", "pagerank", "svm", "nweight"],
         default="join"
     )
     # =======For evaluating modules developed currently=======    
@@ -75,6 +75,11 @@ def main():
         type=int,
         default=bp["maximum_number_evaluations_until_input_dim"],
         help='[Bounce] adjusting init sampling sizes until reaching input dimensions'
+    )
+    parser.add_argument(
+        "--noise_free",
+        action='store_true',
+        help='[Noise] If you want to run benchmarking in a noise-free experiment, trigger this'
     )    
     # ========================================================
     
@@ -143,6 +148,7 @@ def main():
                           n_init=args.n_init,
                           max_eval=args.max_eval,
                           max_eval_until_input=args.max_eval_until_input,
+                          noise_free=args.noise_free
                           )
         case _:
             assert False, "The method is not defined.. Choose in [bounce, random]"
