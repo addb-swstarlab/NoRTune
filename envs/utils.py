@@ -1,5 +1,6 @@
 import datetime
 import os, logging
+import pandas as pd
 
 def get_filename(PATH, head, tail):
     i = 0
@@ -50,3 +51,49 @@ def get_logger(log_path='./logs'):
     logger.info('Writing logs at {}'.format(os.path.join(log_path, name)))
     # return logger, os.path.join(log_path, name)
     return logger
+
+def print_configuration_from_dict(x: dict[str,float]):
+    assert isinstance(x, dict), "x should be dictionary {str: float}"
+    data_info = pd.read_csv("data/Spark_3.1_45_parameters.csv", index_col=0).to_dict(orient='index')
+
+    for p in x:
+        p_info = data_info[p]
+        v = x[p]
+        unit = p_info['unit']
+        
+        match p_info['type']:
+            case 'binary':
+                items = p_info['range'].split(',')
+                v = items[int(v)]
+                print(f'{p}={v}')
+            case 'categorical':
+                items = p_info['range'].split(',')
+                v = items[int(v)]
+                print(f'{p}={v}')
+            case 'numerical':
+                print(f'{p}={int(v)}') if pd.isna(unit) else print(f'{p}={int(v)}{unit}')
+            case 'continuous':
+                print(f'{p}={v:.2f}')
+
+def logging_configuration_from_dict(x: dict[str,float]):
+    assert isinstance(x, dict), "x should be dictionary {str: float}"
+    data_info = pd.read_csv("data/Spark_3.1_45_parameters.csv", index_col=0).to_dict(orient='index')
+
+    for p in x:
+        p_info = data_info[p]
+        v = x[p]
+        unit = p_info['unit']
+        
+        match p_info['type']:
+            case 'binary':
+                items = p_info['range'].split(',')
+                v = items[int(v)]
+                logging.info(f'{p}={v}')
+            case 'categorical':
+                items = p_info['range'].split(',')
+                v = items[int(v)]
+                logging.info(f'{p}={v}')
+            case 'numerical':
+                logging.info(f'{p}={int(v)}') if pd.isna(unit) else print(f'{p}={int(v)}{unit}')
+            case 'continuous':
+                logging.info(f'{p}={v:.2f}')
