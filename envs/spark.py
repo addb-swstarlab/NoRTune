@@ -37,8 +37,8 @@ class SparkEnv:
             'bayes': 'huge', #'huge',
             'kmeans': 'large',
             'pagerank': 'large',
-            'svm': 'small',
-            'nweight': 'small',
+            'svm': 'large',
+            'nweight': 'large',
         }
         HIBENCH_CONF_PATH = os.path.join(p.DATA_FOLDER_PATH, f'{self.workload_size[self.workload]}_hibench.conf')
         logging.info("Altering hibench workload scale..")
