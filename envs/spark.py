@@ -12,7 +12,9 @@ class SparkEnv:
         csv_path: str = p.SPARK_CONF_INFO_CSV_PATH,
         config_path: str = p.SPARK_CONF_PATH,
         workload: str = None,
-        alter: bool = True
+        workload_size: str = None,
+        alter: bool = True,
+        debugging: bool = False
     ):
         self.config_path=config_path
         
@@ -23,36 +25,76 @@ class SparkEnv:
         
         self.workload = workload if workload is not None else 'join'
         
-        if alter:
-            self._alter_hibench_configuration()
-            # self._get_result_from_default_configuration()
+        self.debugging = debugging
         
-    def _alter_hibench_configuration(self):
-        self.workload_size = {
-            'aggregation': 'huge', #'gigantic', #'huge',
-            'join': 'huge', #'huge',
-            'scan': 'huge', #'huge',
+        self.alter = False if self.debugging else alter
+        
+        self.workloads_size = {
+            'aggregation': 'large', #'huge',
+            'join': 'huge',
+            'scan': 'huge',
             'wordcount': 'large',
-            'terasort': 'large', 
-            'bayes': 'huge', #'huge',
+            'terasort': 'large',  
+            'bayes': 'huge',
             'kmeans': 'large',
             'pagerank': 'large',
             'svm': 'large',
-            'nweight': 'large',
-        }
-        HIBENCH_CONF_PATH = os.path.join(p.DATA_FOLDER_PATH, f'{self.workload_size[self.workload]}_hibench.conf')
+            'nweight': 'small',
+        }        
+        
+        if self.alter:
+            self._alter_hibench_configuration(workload_size)
+            # self._get_result_from_default_configuration()
+        self.fail_conf_flag = False
+        
+    def _alter_hibench_configuration(self, workload_size=None):
+        if workload_size is None:
+            workload_size = self.workloads_size[self.workload]
+            
+        HIBENCH_CONF_PATH = os.path.join(p.DATA_FOLDER_PATH, f'{workload_size}_hibench.conf')
         logging.info("Altering hibench workload scale..")
-        logging.info(f"Workload ***{self.workload}*** need ***{self.workload_size[self.workload]}*** size..")
+        logging.info(f"Workload ***{self.workload}*** with ***{workload_size}*** size..")
         os.system(f'scp {HIBENCH_CONF_PATH} {p.MASTER_ADDRESS}:{p.MASTER_CONF_PATH}/hibench.conf')
 
 
     def apply_configuration(self, config_path=None):
+        if self.debugging:
+            logging.info("DEBUGGING MODE, skipping to apply the given configuration")
+        else:
+            self._apply_configuration(config_path)
+            
+    def run_configuration(self):
+        if self.debugging:
+            logging.info("DEBUGGING MODE, skipping to benchmark the given configuration")
+        else:
+            self._run_configuration()
+            
+    def get_results(self):
+        if self.debugging:
+            logging.info("DEBUGGING MODE, getting results from the local report file..")
+            
+            f = open(p.HIBENCH_REPORT_PATH, 'r')
+            report = f.readlines()
+            f.close()
+            
+            from random import sample
+            rand_idx = sample(range(1, len(report)),1)[0]
+            
+            duration = report[rand_idx].split()[-3]
+            tps = report[rand_idx].split()[-2]
+            logging.info(f"DEBUGGING MODE, the recorded results are.. Duration: {duration} s Throughput: {tps} bytes/s")
+            # return float(duration), float(tps)
+            return float(duration)
+        else:
+            return self._get_results()
+    
+    def _apply_configuration(self, config_path=None):
         config_path = self.config_path if config_path is None else config_path
         
         logging.info("Applying created configuration to the remote Spark server.. 💨💨")
         os.system(f'scp {config_path} {p.MASTER_ADDRESS}:{p.MASTER_CONF_PATH}/add-spark.conf')
         
-    def run_configuration(self):
+    def _run_configuration(self):
         """
             TODO:
             !!A function to Save configuration should be implemented on other files!!
@@ -68,7 +110,7 @@ class SparkEnv:
             logging.info("🎉Successfully finished benchmarking")
             self.fail_conf_flag = False
                         
-    def get_results(self) -> float:
+    def _get_results(self) -> float:
         logging.info("Getting result files..")
         if self.fail_conf_flag:
             duration = 10000
