@@ -40,6 +40,12 @@ def main():
         choices=["aggregation", "join", "scan", "wordcount", "terasort", "bayes", "kmeans", "pagerank", "svm", "nweight"],
         default="join"
     )
+    parser.add_argument(
+        "--workload_size",
+        type=str,
+        choices=["tiny", "small", "large"],
+        default="large"
+    )
     # =======For evaluating modules developed currently=======    
     parser.add_argument(
         "--neighbor",
@@ -52,6 +58,13 @@ def main():
         action='store_false',
         help='[BO-PP] If you want to run without a BO-PP module, trigger this'
     )
+    # parser.add_argument(
+    #     "--gp",
+    #     type=str,
+    #     default='fixednoisegp',
+    #     choices=['fixednoisegp', 'singletaskgp'],
+    #     help='[Noise-GP] Choosing the kind of GP class whether inseting noise variances or not'
+    # )
     parser.add_argument(
         "--bin",
         type=int,
@@ -80,6 +93,11 @@ def main():
         "--noise_free",
         action='store_true',
         help='[Noise] If you want to run benchmarking in a noise-free experiment, trigger this'
+    )
+    parser.add_argument(
+        "--debugging",
+        action='store_true',
+        help='[DEBUGGING] If you want to debug the entire code without running benchmarking, trigger this'
     )    
     # ========================================================
     
@@ -139,7 +157,7 @@ def main():
             tuner = RandomSearch(benchmark=benchmark,
                                  maximum_number_evaluations=args.max_eval)
         case "incpp":
-            env = SparkEnv(workload=args.workload)
+            env = SparkEnv(workload=args.workload, debugging=args.debugging)
             benchmark = SparkTuning(env=env)
             tuner = incPP(benchmark=benchmark, 
                           neighbor_distance=args.neighbor, 
@@ -148,7 +166,8 @@ def main():
                           n_init=args.n_init,
                           max_eval=args.max_eval,
                           max_eval_until_input=args.max_eval_until_input,
-                          noise_free=args.noise_free
+                          noise_free=args.noise_free,
+                        #   gp_mode=args.gp
                           )
         case _:
             assert False, "The method is not defined.. Choose in [bounce, random]"
