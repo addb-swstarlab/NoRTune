@@ -48,6 +48,8 @@ def get_logger(log_path='./logs'):
     logger.addHandler(streamHandler)
 
     logger.setLevel(logging.INFO)
+    # logger.setLevel(logging.DEBUG)
+    # logger.setLevel(logging.WARNING)
     logger.info('Writing logs at {}'.format(os.path.join(log_path, name)))
     # return logger, os.path.join(log_path, name)
     return logger
