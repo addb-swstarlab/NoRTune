@@ -14,7 +14,7 @@ from bounce.util.printing import BColors
 from bounce.benchmarks import Benchmark
 from bounce.projection import Bin
 from bounce.candidates import create_candidates_continuous, create_candidates_discrete
-from botorch.acquisition import ExpectedImprovement
+from botorch.acquisition import ExpectedImprovement, NoisyExpectedImprovement
 from botorch.sampling import SobolQMCNormalSampler
 from bounce.trust_region import TrustRegion, update_tr_state
 from bounce.util.benchmark import ParameterType
@@ -40,16 +40,19 @@ class incPP(Bounce):
                  n_init: int = 10,
                  max_eval: int = 50,
                  max_eval_until_input: int = 45,
-                 noise_free: bool = False
+                 noise_free: bool = False,
+                #  gp_mode: str = 'fixednoisegp',
                  ):
     
         self.benchmark = benchmark
         self.pseudo_point = pseudo_point
         self.neighbor_distance = neighbor_distance
         self.noise_free = noise_free
+        # self.gp_mode = gp_mode
         
-        if self.noise_free:
-            logging.info("⚠️ CAUTION!! This is a noise-free mode!! ⚠️")
+        # if self.noise_free:
+        #     logging.info("⚠️ CAUTION!! This is a noise-free mode!! ⚠️")
+        #     self.gp_mode = 'singletaskgp'
         
         # TODO: after analyzing bins, revise here
         super().__init__(benchmark=self.benchmark, 
@@ -60,7 +63,7 @@ class incPP(Bounce):
                          )
         
         f = open(os.path.join(self.results_dir, 'workload.txt'), 'w')
-        f.writelines(f"{self.benchmark.env.workload} {self.benchmark.env.workload_size[self.benchmark.env.workload]}")
+        f.writelines(f"{self.benchmark.env.workload} {self.benchmark.env.workloads_size[self.benchmark.env.workload]}")
         f.close()
 
     def sample_init(self):
@@ -161,18 +164,20 @@ class incPP(Bounce):
         """
 
         self.sample_init()
-
+        fx_best_stack = torch.empty(0, 1)
+        
         while self._n_evals <= self.maximum_number_evaluations:
             axus = self.random_embedding
             
-            # Remove failed data
-            mask = self.fx_tr != 10000
+            x = self.x_tr
+            fx = self.fx_tr
             
-            x = self.x_tr[mask]
-            fx = self.fx_tr[mask]
+            # Preprocessing failed data #######################
+            fx_ = fx[fx != torch.tensor(10000)]
+            std_ = torch.std(fx_)
             
-            # x = self.x_tr
-            # fx = self.fx_tr
+            fx[fx==torch.tensor(10000)] = fx_.max() + std_
+            ####################################################          
 
             # normalize data
             mean = torch.mean(fx)
@@ -180,19 +185,40 @@ class incPP(Bounce):
             if std == 0:
                 std += 1
             fx_scaled = (fx - mean) / std
+            
+            # if self.noise_free:
+            #     x_scaled = (x + 1) / 2
+            #     fx_var_scaled = None
+            # else:
+            #     logging.info("🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳")
+            #     unique_x, indices = torch.unique(x, dim=0, return_inverse=True)
+            #     y_mean = torch.empty(0, 1)
+            #     y_var = torch.empty(0, 1)
+            #     for _ in range(len(unique_x)):
+            #         mask = indices == _
+            #         y_mean = torch.vstack((y_mean, torch.mean(fx_scaled[mask])))
+            #         y_var = torch.vstack((y_var, torch.var(fx_scaled[mask])))
+            #     fx_scaled = y_mean.squeeze()
+            #     fx_var_scaled = y_var
+                
+            #     x_scaled = (unique_x + 1) / 2
+            
             x_scaled = (x + 1) / 2
 
             if self.device == "cuda":
-                fx_scaled = fx_scaled.to(self.device)
                 x_scaled = x_scaled.to(self.device)
+                fx_scaled = fx_scaled.to(self.device)
+                # fx_var_scaled = fx_var_scaled.to(self.device)
 
             # Select the kernel
             model, train_x, train_fx = get_gp(
                 axus=axus,
                 x=x_scaled,
                 fx=-fx_scaled,
+                # fx_var=fx_var_scaled,
                 neighbor_distance=self.neighbor_distance,
-                pseudo_point_mode=self.pseudo_point
+                pseudo_point_mode=self.pseudo_point,
+                # gp_mode = self.gp_mode,
             )
 
             use_scipy_lbfgs = self.use_scipy_lbfgs and (
@@ -322,6 +348,14 @@ class incPP(Bounce):
                     "Only binary and continuous benchmarks are supported."
                 )
             # get the GP hyperparameters as a dictionary
+            if self.noise_free:
+                pass
+            else:
+                logging.info("🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳")
+                fx_best_stack = torch.vstack((fx_best_stack, fx_best))
+                tr_state['center_posterior_mean_fx'] = fx_best_stack
+                fx_best_clone = fx_best.clone()
+            
             self.save_tr_state(tr_state)
             minimum_xs = x_best.detach().cpu()
             minimum_fxs = fx_best.detach().cpu()
@@ -490,6 +524,9 @@ class incPP(Bounce):
                     ),
                     delimiter=",",
                 )
+               
+        with lzma.open(os.path.join(self.results_dir, f"fx_best_from_mean.csv.xz"), "a") as f:
+            np.savetxt(f, fx_best_stack, delimiter=",")
 
         # self.benchmark.env.calculate_improvement_from_default(best_fx=best_fx)
         
