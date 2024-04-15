@@ -38,6 +38,7 @@ class incPP(Bounce):
                  pseudo_point: bool = True,
                  bin: int = 2,
                  n_init: int = 10,
+                 initial_target_dimensionality: int = 5,
                  max_eval: int = 50,
                  max_eval_until_input: int = 45,
                  noise_free: bool = False,
@@ -57,6 +58,7 @@ class incPP(Bounce):
         # TODO: after analyzing bins, revise here
         super().__init__(benchmark=self.benchmark, 
                          number_new_bins_on_split=bin, 
+                         initial_target_dimensionality=initial_target_dimensionality,
                          number_initial_points=n_init,
                          maximum_number_evaluations=max_eval,
                          maximum_number_evaluations_until_input_dim=max_eval_until_input,
