@@ -1,14 +1,14 @@
 /.idea/
 /.pytest_cache/
 /htmlcov/
-/results/
+/*results/
 *.pyc
 *.iml
 *.sh
 *.conf
 *.csv
 envs/gcp_info.py
-*/*results/
+*/results/
 data/*
 /logs/
 *.ipynb
