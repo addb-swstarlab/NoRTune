@@ -6,11 +6,13 @@ import os
 # import gin
 
 from bounce.bounce import Bounce
-from bounce.util.printing import BColors, BOUNCE_NAME, RANDOM_NAME, INCPP_NAME
+from bounce.util.printing import BColors, BOUNCE_NAME, RANDOM_NAME, INCPP_NAME, HESBO_NAME
 from bounce.spark_benchmark import SparkTuning
 from random_search.search import RandomSearch
 from random_search.benchmarks import SparkBench
 from incpp.incpp import incPP
+from others.optimizers import Baselines
+from others.benchmarks import Benchmark
 
 from envs.utils import get_logger
 from envs.spark import SparkEnv
@@ -78,6 +80,12 @@ def main():
         help='[Bounce] adjusting init sampling sizes'
     )
     parser.add_argument(
+        "--target_dim",
+        type=int,
+        default=bp['initial_target_dimensionality'],
+        help='[Bounce&HesBO] adjusting init target dimensionality'
+    )    
+    parser.add_argument(
         "--max_eval",
         type=int,
         default=bp["maximum_number_evaluations"],
@@ -114,7 +122,8 @@ def main():
         logging.info(RANDOM_NAME)
     elif args.method == 'incpp':
         logging.info(INCPP_NAME)
-            
+    elif args.method == 'hesbo':
+        logging.info(HESBO_NAME)            
 
     then = time.time()
 
@@ -162,6 +171,7 @@ def main():
             tuner = incPP(benchmark=benchmark, 
                           neighbor_distance=args.neighbor, 
                           pseudo_point=args.wo_bopp,
+                          initial_target_dimensionality=args.target_dim,
                           bin=args.bin,
                           n_init=args.n_init,
                           max_eval=args.max_eval,
@@ -169,6 +179,15 @@ def main():
                           noise_free=args.noise_free,
                         #   gp_mode=args.gp
                           )
+        case "hesbo":
+            benchmark = Benchmark(workload=args.workload,
+                                  debugging=args.debugging,
+                                  embed_adapter_alias=args.method,
+                                  target_dim=args.target_dim)
+            tuner = Baselines(
+                method=args.method,
+                benchmark=benchmark
+                )
         case _:
             assert False, "The method is not defined.. Choose in [bounce, random]"
     
