@@ -8,7 +8,7 @@
 *.conf
 *.csv
 envs/gcp_info.py
-*/results/
+*/*results/
 data/*
 /logs/
 *.ipynb
