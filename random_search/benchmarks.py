@@ -1,6 +1,7 @@
 import os
 import logging
 import pandas as pd
+from typing import Union
 
 from ConfigSpace import ConfigurationSpace, Configuration
 from ConfigSpace.hyperparameters import UniformFloatHyperparameter, UniformIntegerHyperparameter, CategoricalHyperparameter
@@ -12,9 +13,10 @@ class SparkBench(SparkEnv):
     def __init__(
         self,
         workload: str = None,
-        alter: bool = True
+        alter: bool = True,
+        debugging: bool = False,
     ):
-        super().__init__(workload=workload, alter=alter)
+        super().__init__(workload=workload, alter=alter, debugging=debugging)
         # self.config_path = config_path
         # csv_data = pd.read_csv(csv_path, index_col=0)
         # self.dict_data = csv_data.to_dict(orient='index')
@@ -41,9 +43,12 @@ class SparkBench(SparkEnv):
         cs.add_hyperparameters(hyps)
         return cs
     
-    def save_configuration_file(self, config: Configuration, log_flag=False):
+    def save_configuration_file(self, config: Union[Configuration, dict], log_flag=False):
+        assert isinstance(config, (Configuration, dict)), "config must be type Configuration or Dictionary."
+        
         logging.info(f"Save configuration to {self.config_path} 💨")
-        config = config.get_dictionary()
+        if isinstance(config, Configuration):
+            config = config.get_dictionary()
         
         f = open(self.config_path, 'w')
 
