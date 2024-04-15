@@ -45,3 +45,13 @@ INCPP_NAME = """
 
    [ incPP: Incresaingly high-dimensional combinatorial and continuous embedding with Pseudo Points ]
 """
+
+HESBO_NAME = """
+\t    __  __          ____  ____
+\t   / / / /__  _____/ __ )/ __ \\
+\t  / /_/ / _ \\/  __/ __  / / / /
+\t / __  /  __/_\\ \\/ /_/ / /_/ /
+\t/_/ /_/\\___/____/_____/\____/
+
+    [ HesBO: Using HesBO leveraged to SMAC --> LlamaTune ]
+"""
