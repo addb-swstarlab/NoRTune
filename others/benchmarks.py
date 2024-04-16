@@ -1,7 +1,7 @@
 import logging
 from ConfigSpace import Configuration, ConfigurationSpace
 from random_search.benchmarks import SparkBench
-from others.low_embeddings import LinearEmbeddingConfigSpace
+from others.adapters.low_embeddings import LinearEmbeddingConfigSpace
 
 class Benchmark(SparkBench):
     def __init__(
@@ -11,11 +11,13 @@ class Benchmark(SparkBench):
         workload: str = None,
         alter: bool = True,
         debugging: bool = False,
+        quantization_factor: int = None,
     ):
         self.embed_adapter_alias = embed_adapter_alias
         self.target_dim = target_dim
+        self._quantization_factor = quantization_factor
         
-        assert self.embed_adapter_alias in ['rembo', 'hesbo', 'ddpg'], "embed_adapter_alias should be defined to 'rembo', 'hesbo', or 'ddpg'."
+        assert self.embed_adapter_alias in ['rembo', 'hesbo', 'ddpg', 'none'], "embed_adapter_alias should be defined to 'rembo', 'hesbo', or 'ddpg'."
         
         super().__init__(workload=workload, alter=alter, debugging=debugging)
 
@@ -32,6 +34,7 @@ class Benchmark(SparkBench):
             target_dim=self.target_dim, # x_low_dim, subspace dim
             method=self.embed_adapter_alias,
             seed=0,
+            max_num_values=self._quantization_factor,
         )
         
         return self.embedding_adapter.target
