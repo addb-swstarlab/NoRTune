@@ -42,6 +42,8 @@ class SparkEnv:
             'nweight': 'small',
         }        
         
+        self.start_dataproc()
+        
         if self.alter:
             self._alter_hibench_configuration(workload_size)
             # self._get_result_from_default_configuration()
@@ -129,11 +131,14 @@ class SparkEnv:
     
     # Clear hdfs storages in the remote Spark nodes
     def clear_spark_storage(self):
-        exit_code = os.system(f'ssh {p.MASTER_ADDRESS} "bash --noprofile --norc -c scripts/clear_hibench.sh"')
-        if exit_code > 0:
-            logging.warning("💀Failed cleaning Spark Storage!!")
+        if self.debugging:
+            logging.info("[Google Cloud Platform|Dataproc] 🛑 Skipping cleaning Spark storage!!")
         else:
-            logging.info("🎉Successfully cleaning Spark Storage")
+            exit_code = os.system(f'ssh {p.MASTER_ADDRESS} "bash --noprofile --norc -c scripts/clear_hibench.sh"')
+            if exit_code > 0:
+                logging.warning("💀Failed cleaning Spark Storage!!")
+            else:
+                logging.info("🎉Successfully cleaning Spark Storage")
     
     # Get the result of default configuration..
     def _get_result_from_default_configuration(self): 
@@ -160,3 +165,17 @@ class SparkEnv:
         logging.info(f"🎯 Improvement rate from default results.. {improve_ratio}%")
         logging.info(f"Default result is {default_fx} and Best result is {best_fx}")
         logging.info("=============================================================")
+        
+    def start_dataproc(self):
+        if self.debugging:
+            logging.info("[Google Cloud Platform|Dataproc] 🛑 Skipping start Spark instances")
+        else:
+            logging.info("[Google Cloud Platform|Dataproc] 🔥 Start Spark instances")
+            os.system(p.GCP_DATAPROC_START_COMMAND)
+        
+    def stop_dataproc(self):
+        if self.debugging:
+            logging.info("[Google Cloud Platform|Dataproc] 🛑 Skipping stop Spark instances")
+        else:
+            logging.info("[Google Cloud Platform|Dataproc] ⛔ Stop Spark instances")
+            os.system(p.GCP_DATAPROC_STOP_COMMAND)
