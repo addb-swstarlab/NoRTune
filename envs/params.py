@@ -1,5 +1,5 @@
 import os
-from envs.gcp_info import GCP_SPARK_MASTER_ADDRESS
+from envs.gcp_info import GCP_SPARK_MASTER_ADDRESS, GCP_DATAPROC_STOP_COMMAND, GCP_DATAPROC_START_COMMAND
 
 HOME_PATH = os.path.expanduser('~')
 PROJECT_NAME = 'SparkTuning'
