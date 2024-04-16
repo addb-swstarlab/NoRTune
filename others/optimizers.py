@@ -25,7 +25,7 @@ class Baselines:
         self.benchmark = benchmark
         self.rand_percentage = rand_percentage
         self.n_estimators = n_estimators
-        self.input_space = self._get_input_space()
+        self.input_space = self.benchmark.input_space
         
         self._init_observations()
         self._set_result_dir()
@@ -46,11 +46,11 @@ class Baselines:
         f.writelines(f"{self.benchmark.workload} {self.benchmark.workloads_size[self.benchmark.workload]}")
         f.close()    
     
-    def _get_input_space(self):
-        if self.method == 'ddpg':
-            return self.benchmark.input_space
-        elif self.method in ['rembo', 'hesbo']:
-            return self.benchmark.input_space
+    # def _get_input_space(self):
+    #     if self.method == 'ddpg':
+    #         return self.benchmark.input_space
+    #     elif self.method in ['rembo', 'hesbo']:
+    #         return self.benchmark.input_space
 
     def _init_observations(self):
         self._x = []
