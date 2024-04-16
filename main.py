@@ -83,7 +83,7 @@ def main():
         "--target_dim",
         type=int,
         default=bp['initial_target_dimensionality'],
-        help='[Bounce&HesBO] adjusting init target dimensionality'
+        help='[Bounce&HesBO&LlamaTune] adjusting init target dimensionality'
     )    
     parser.add_argument(
         "--max_eval",
@@ -106,7 +106,13 @@ def main():
         "--debugging",
         action='store_true',
         help='[DEBUGGING] If you want to debug the entire code without running benchmarking, trigger this'
-    )    
+    )
+    parser.add_argument(
+        "--q_factor",
+        type=int,
+        default=None,
+        help='[LlamaTune] adjusting quantization factor (configuration space bucketization)'
+    )   
     # ========================================================
     
     args = parser.parse_args()
@@ -125,7 +131,7 @@ def main():
     elif args.method == 'hesbo':
         logging.info(HESBO_NAME)            
 
-    then = time.time()
+    
 
 
     # parser.add_argument(
@@ -158,32 +164,45 @@ def main():
     
     match args.method:
         case "bounce":
-            env = SparkEnv(workload=args.workload)
+            env = SparkEnv(
+                workload=args.workload,
+                debugging=args.debugging
+                )
             benchmark = SparkTuning(env=env)
             tuner = Bounce(benchmark=benchmark)
         case "random":            
-            benchmark = SparkBench(workload=args.workload)
+            benchmark = SparkBench(
+                workload=args.workload,
+                debugging=args.debugging
+                )
             tuner = RandomSearch(benchmark=benchmark,
                                  maximum_number_evaluations=args.max_eval)
         case "incpp":
-            env = SparkEnv(workload=args.workload, debugging=args.debugging)
+            env = SparkEnv(
+                workload=args.workload,
+                debugging=args.debugging
+                )
             benchmark = SparkTuning(env=env)
-            tuner = incPP(benchmark=benchmark, 
-                          neighbor_distance=args.neighbor, 
-                          pseudo_point=args.wo_bopp,
-                          initial_target_dimensionality=args.target_dim,
-                          bin=args.bin,
-                          n_init=args.n_init,
-                          max_eval=args.max_eval,
-                          max_eval_until_input=args.max_eval_until_input,
-                          noise_free=args.noise_free,
-                        #   gp_mode=args.gp
-                          )
+            tuner = incPP(
+                benchmark=benchmark, 
+                neighbor_distance=args.neighbor, 
+                pseudo_point=args.wo_bopp,
+                initial_target_dimensionality=args.target_dim,
+                bin=args.bin,
+                n_init=args.n_init,
+                max_eval=args.max_eval,
+                max_eval_until_input=args.max_eval_until_input,
+                noise_free=args.noise_free,
+            #   gp_mode=args.gp
+                )
         case "hesbo":
-            benchmark = Benchmark(workload=args.workload,
-                                  debugging=args.debugging,
-                                  embed_adapter_alias=args.method,
-                                  target_dim=args.target_dim)
+            benchmark = Benchmark(
+                workload=args.workload,
+                debugging=args.debugging,
+                embed_adapter_alias=args.method,
+                target_dim=args.target_dim,
+                quantization_factor=args.q_factor,
+                )
             tuner = Baselines(
                 method=args.method,
                 benchmark=benchmark
@@ -191,6 +210,7 @@ def main():
         case _:
             assert False, "The method is not defined.. Choose in [bounce, random]"
     
+    then = time.time()
     tuner.run()
     
     now = time.time()
@@ -198,9 +218,11 @@ def main():
     
     if env is not None:
         env.clear_spark_storage()
+        env.stop_dataproc()
     else: 
         # the case for random search module
         benchmark.clear_spark_storage()
+        benchmark.stop_dataproc()
     
 
 
