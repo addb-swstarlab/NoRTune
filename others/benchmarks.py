@@ -9,6 +9,7 @@ class Benchmark(SparkBench):
         embed_adapter_alias : str,
         target_dim: int,
         workload: str = None,
+        workload_size: str = None,
         alter: bool = True,
         debugging: bool = False,
         quantization_factor: int = None,
@@ -19,7 +20,7 @@ class Benchmark(SparkBench):
         
         assert self.embed_adapter_alias in ['rembo', 'hesbo', 'ddpg', 'none'], "embed_adapter_alias should be defined to 'rembo', 'hesbo', or 'ddpg'."
         
-        super().__init__(workload=workload, alter=alter, debugging=debugging)
+        super().__init__(workload=workload, workload_size=workload_size, alter=alter, debugging=debugging)
 
         self.input_space: ConfigurationSpace = self.spark_cs
         
