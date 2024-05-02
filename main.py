@@ -11,8 +11,8 @@ from bounce.spark_benchmark import SparkTuning
 from random_search.search import RandomSearch
 from random_search.benchmarks import SparkBench
 from incpp.incpp import incPP
-from others.optimizers import Baselines
-from others.benchmarks import Benchmark
+# from others.optimizers import Baselines
+# from others.benchmarks import Benchmark
 
 from envs.utils import get_logger
 from envs.spark import SparkEnv
@@ -166,6 +166,7 @@ def main():
         case "bounce":
             env = SparkEnv(
                 workload=args.workload,
+                workload_size=args.workload_size,
                 debugging=args.debugging
                 )
             benchmark = SparkTuning(env=env)
@@ -173,6 +174,7 @@ def main():
         case "random":            
             benchmark = SparkBench(
                 workload=args.workload,
+                workload_size=args.workload_size,
                 debugging=args.debugging
                 )
             tuner = RandomSearch(benchmark=benchmark,
@@ -180,6 +182,7 @@ def main():
         case "incpp":
             env = SparkEnv(
                 workload=args.workload,
+                workload_size=args.workload_size,
                 debugging=args.debugging
                 )
             benchmark = SparkTuning(env=env)
@@ -195,18 +198,19 @@ def main():
                 noise_free=args.noise_free,
             #   gp_mode=args.gp
                 )
-        case "hesbo":
-            benchmark = Benchmark(
-                workload=args.workload,
-                debugging=args.debugging,
-                embed_adapter_alias=args.method,
-                target_dim=args.target_dim,
-                quantization_factor=args.q_factor,
-                )
-            tuner = Baselines(
-                method=args.method,
-                benchmark=benchmark
-                )
+        # case "hesbo":
+        #     benchmark = Benchmark(
+        #         workload=args.workload,
+        #         workload_size=args.workload_size,
+        #         debugging=args.debugging,
+        #         embed_adapter_alias=args.method,
+        #         target_dim=args.target_dim,
+        #         quantization_factor=args.q_factor,
+        #         )
+        #     tuner = Baselines(
+        #         method=args.method,
+        #         benchmark=benchmark
+        #         )
         case _:
             assert False, "The method is not defined.. Choose in [bounce, random]"
     
@@ -231,6 +235,10 @@ if __name__ == "__main__":
         main()
     except:
         logger.exception("ERROR!!")
+        
+        logging.info("[Google Cloud Platform|Dataproc] ⛔ Stop Spark instances")
+        from envs.params import GCP_DATAPROC_STOP_COMMAND
+        os.system(GCP_DATAPROC_STOP_COMMAND)
     else:
         logger.handlers.clear()
 
