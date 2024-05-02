@@ -65,7 +65,7 @@ class incPP(Bounce):
                          )
         
         f = open(os.path.join(self.results_dir, 'workload.txt'), 'w')
-        f.writelines(f"{self.benchmark.env.workload} {self.benchmark.env.workloads_size[self.benchmark.env.workload]}")
+        f.writelines(f"{self.benchmark.env.workload} {self.benchmark.env.workload_size}")
         f.close()
 
     def sample_init(self):
@@ -549,8 +549,8 @@ class incPP(Bounce):
             best_y = self.benchmark(best_x.unsqueeze(0))
             best_ys.append(best_y.item())
         
-        from statistics import mean
-        logging.info(f"Results = {best_ys} , Mean = {mean(best_ys)}")
+        from statistics import mean, stdev
+        logging.info(f"Results = {best_ys} , Mean = {mean(best_ys):.3f} (±{stdev(best_ys):.3f})")
         
         
         
