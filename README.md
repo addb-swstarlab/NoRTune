@@ -9,4 +9,5 @@ To install the dependencies, run
 
 ```bash
 poetry install
+pip install configspace
 ```
