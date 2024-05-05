@@ -11,8 +11,8 @@ from bounce.spark_benchmark import SparkTuning
 from random_search.search import RandomSearch
 from random_search.benchmarks import SparkBench
 from incpp.incpp import incPP
-# from others.optimizers import Baselines
-# from others.benchmarks import Benchmark
+from others.optimizers import Baselines
+from others.benchmarks import Benchmark
 
 from envs.utils import get_logger
 from envs.spark import SparkEnv
@@ -22,6 +22,7 @@ from envs.params import BOUNCE_PARAM as bp
 
 logger = get_logger()
 os.system('clear')
+DEBUGGING_MODE = False
 
 def main():
     parser = argparse.ArgumentParser(
@@ -117,6 +118,9 @@ def main():
     
     args = parser.parse_args()
     
+    global DEBUGGING_MODE
+    DEBUGGING_MODE = True if args.debugging else False
+    
     logging.basicConfig(
         level=logging.INFO,
         format=f"{BColors.LIGHTGREY} %(levelname)s:%(asctime)s - (%(filename)s:%(lineno)d) - %(message)s {BColors.ENDC}",
@@ -198,19 +202,19 @@ def main():
                 noise_free=args.noise_free,
             #   gp_mode=args.gp
                 )
-        # case "hesbo":
-        #     benchmark = Benchmark(
-        #         workload=args.workload,
-        #         workload_size=args.workload_size,
-        #         debugging=args.debugging,
-        #         embed_adapter_alias=args.method,
-        #         target_dim=args.target_dim,
-        #         quantization_factor=args.q_factor,
-        #         )
-        #     tuner = Baselines(
-        #         method=args.method,
-        #         benchmark=benchmark
-        #         )
+        case "hesbo":
+            benchmark = Benchmark(
+                workload=args.workload,
+                workload_size=args.workload_size,
+                debugging=args.debugging,
+                embed_adapter_alias=args.method,
+                target_dim=args.target_dim,
+                quantization_factor=args.q_factor,
+                )
+            tuner = Baselines(
+                method=args.method,
+                benchmark=benchmark
+                )
         case _:
             assert False, "The method is not defined.. Choose in [bounce, random]"
     
@@ -236,9 +240,12 @@ if __name__ == "__main__":
     except:
         logger.exception("ERROR!!")
         
-        logging.info("[Google Cloud Platform|Dataproc] ⛔ Stop Spark instances")
-        from envs.params import GCP_DATAPROC_STOP_COMMAND
-        os.system(GCP_DATAPROC_STOP_COMMAND)
+        if DEBUGGING_MODE:
+            logging.info("Skipping stop GCP instance")    
+        else:
+            logging.info("[Google Cloud Platform|Dataproc] ⛔ Stop Spark instances")
+            from envs.params import GCP_DATAPROC_STOP_COMMAND
+            os.system(GCP_DATAPROC_STOP_COMMAND)
     else:
         logger.handlers.clear()
 
