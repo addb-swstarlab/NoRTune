@@ -64,6 +64,7 @@ class incPP(Bounce):
                          number_initial_points=n_init,
                          maximum_number_evaluations=max_eval,
                          maximum_number_evaluations_until_input_dim=max_eval_until_input,
+                         results_dir='test_results'
                          )
         
         f = open(os.path.join(self.results_dir, 'workload.txt'), 'w')
@@ -383,32 +384,56 @@ class incPP(Bounce):
 
             # Sample on the candidate points
             # y_next = self.benchmark(cand_batch)
-            if self.noise_free:
-                y_next = self.benchmark(cand_batch)
-                min_y_next = torch.min(y_next)
-            else:
-                # cand_batch: torch.Tensor == xs_high_dim: List([torch.Tensor]) -> [n, representation_dim]
-                y_next = self.benchmark(cand_batch.repeat(BENCHMARKING_REPETITION, 1)) # [n*BR, 1]
-                
-                model.eval()
-                model.likelihood.eval()
-                min_y_next = torch.min(-model.posterior(torch.vstack(xs_low_dim)).mean * std + mean) # [1, 1]
-
+            
             # *************************************************************** #
             # TODO: in noisy environments, how can I compare them...?
             # best_fx = self.fx_tr.min()
             if self.noise_free:
-                best_fx = self.fx_tr.min()
+                # Sample on the candidate points
+                y_next = self.benchmark(cand_batch)
+                min_y_next = torch.min(y_next)
+                
+                best_idx = self.fx_tr.argmin()
+                best_fx = self.fx_tr[best_idx]
+                
+                matches = (self.x_tr == self.x_tr[best_idx]).all(dim=1)
+                best_indices = matches.nonzero(as_tuple=True)[0]
+                best_real_fxs = self.fx_tr[best_indices]
+                # best_fx = self.fx_tr.min()
+                
             else:
+                # Sample on the candidate points
+                y_next = self.benchmark(cand_batch.repeat(BENCHMARKING_REPETITION, 1)) # [n*BR, 1]
+                
                 model.eval()
                 model.likelihood.eval()
-                best_idx = (- model.posterior(x_scaled).mean * std + mean).argmin()
-                best_fx = self.fx_tr[best_idx]
-                logging.info("🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳")
-                # fx_best_stack = torch.vstack((fx_best_stack, best_fx))
-                # logging.info(fx_best_stack)
-                tr_state['best_fx_from_poster_mean'] = best_fx if best_fx.dim() > 0 else best_fx.unsqueeze(0)
-                # fx_best_clone = fx_best.clone()
+                ''' ** NOTE that **
+                    xs_low_dim is a lower dimension version of cand_batch
+                    xs_high_dim is equal to cand_batch
+                '''
+                min_y_next = torch.min(-model.posterior(torch.vstack(xs_low_dim)).mean * std + mean) # [1, 1]
+        
+                # model.eval()
+                # model.likelihood.eval()
+                pred_fx_by_gp = - model.posterior(x_scaled).mean * std + mean
+                best_idx = (pred_fx_by_gp).argmin()
+                #######################################
+                best_pred_fx_by_gp = pred_fx_by_gp[best_idx]
+                # best_gp_fx = (- model.posterior(x_scaled).mean * std + mean).min()
+                
+                matches = (self.x_tr == self.x_tr[best_idx]).all(dim=1)
+                best_indices = matches.nonzero(as_tuple=True)[0]
+                best_real_fxs = self.fx_tr[best_indices]
+                ''' NOTE:
+                        min_y_next : the min value from repeated results of a candidate.
+                        best_pred_fx_by_gp : the best value chosen from predictions, which are posterior means of the GP model, except a current candidate
+                        best_real_fxs : the observed results of the best x, which are benchmarked repeatedly.
+                '''
+                #######################################
+                # tr_state['best_fx_from_poster_mean'] = best_fx if best_fx.dim() > 0 else best_fx.unsqueeze(0)
+                logging.info(best_real_fxs)
+                tr_state['best_fx_from_poster_mean'] = best_real_fxs.unsqueeze(0)
+                best_fx = best_pred_fx_by_gp
             
             self.save_tr_state(tr_state)    
             
@@ -416,13 +441,13 @@ class incPP(Bounce):
             if min_y_next < best_fx:
                 logging.info(
                     # f"✨ Iteration {self._n_evals}: {BColors.OKGREEN}New incumbent function value {y_next.min().item():.3f}{BColors.ENDC}"
-                    f"✨ Iteration {self._n_evals}: {BColors.OKGREEN}New incumbent function value {min_y_next.item():.3f}{BColors.ENDC}"
+                    f"✨ Iteration {self._n_evals}: {BColors.OKGREEN}New incumbent function value {min_y_next.item():.3f}{BColors.ENDC} with {best_real_fxs}"
                 )
             else:
                 logging.info(
-                    f"🚀 Iteration {self._n_evals}: No improvement. Best function value {best_fx.item():.3f}"
+                    f"🚀 Iteration {self._n_evals}: No improvement. Best function value {best_fx.item():.3f} with {best_real_fxs}"
                 )
-
+            
             # Calculate the estimated trust region dimensionality
             tr_dim = self._forecasted_tr_dim
             # Number of times this trust region has been selected
