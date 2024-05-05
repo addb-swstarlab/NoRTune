@@ -350,15 +350,15 @@ class incPP(Bounce):
                     "Only binary and continuous benchmarks are supported."
                 )
             # get the GP hyperparameters as a dictionary
-            if self.noise_free:
-                pass
-            else:
-                logging.info("🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳")
-                fx_best_stack = torch.vstack((fx_best_stack, fx_best))
-                tr_state['center_posterior_mean_fx'] = fx_best_stack
-                fx_best_clone = fx_best.clone()
+            # if self.noise_free:
+            #     pass
+            # else:
+            #     logging.info("🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳")
+            #     fx_best_stack = torch.vstack((fx_best_stack, fx_best))
+            #     tr_state['center_posterior_mean_fx'] = fx_best_stack
+            #     fx_best_clone = fx_best.clone()
             
-            self.save_tr_state(tr_state)
+            # self.save_tr_state(tr_state)
             minimum_xs = x_best.detach().cpu()
             minimum_fxs = fx_best.detach().cpu()
 
@@ -416,8 +416,15 @@ class incPP(Bounce):
             else:
                 model.eval()
                 model.likelihood.eval()
-                best_fx = (- model.posterior(x_scaled).mean * std + mean).min()
-                
+                best_idx = (- model.posterior(x_scaled).mean * std + mean).argmin()
+                best_fx = self.fx_tr[best_idx]
+                logging.info("🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳")
+                # fx_best_stack = torch.vstack((fx_best_stack, best_fx))
+                # logging.info(fx_best_stack)
+                tr_state['best_fx_from_poster_mean'] = best_fx if best_fx.dim() > 0 else best_fx.unsqueeze(0)
+                # fx_best_clone = fx_best.clone()
+            
+            self.save_tr_state(tr_state)    
             
             # if torch.min(y_next) < best_fx:
             if min_y_next < best_fx:
@@ -527,8 +534,8 @@ class incPP(Bounce):
                     delimiter=",",
                 )
                
-        with lzma.open(os.path.join(self.results_dir, f"fx_best_from_mean.csv.xz"), "a") as f:
-            np.savetxt(f, fx_best_stack, delimiter=",")
+        # with lzma.open(os.path.join(self.results_dir, f"fx_best_from_mean.csv.xz"), "a") as f:
+        #     np.savetxt(f, fx_best_stack, delimiter=",")
 
         # self.benchmark.env.calculate_improvement_from_default(best_fx=best_fx)
         
