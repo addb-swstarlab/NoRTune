@@ -27,8 +27,19 @@ BOUNCE_PARAM = {
                 "results_dir" : "results",
                 "maximum_number_evaluations_until_input_dim" : 50, # 100
                 "dtype" : "float64",
-                "use_scipy_lbfgs" : True
-                }
+                "use_scipy_lbfgs" : True,
+                # "noise_mode": {
+                #     "NOISY_OBSERVATIONS": 1,
+                #     "NOISE_FREE_REPEATED_BENCHMARKING": 2,
+                #     "NOISE_FREE_REPEATED_EXPERIMENTS": 3,
+                # }
+            }
+
+NOISE_PARAM = {
+                "NOISY_OBSERVATIONS": 1,
+                "NOISE_FREE_REPEATED_BENCHMARKING": 2,
+                "NOISE_FREE_REPEATED_EXPERIMENTS": 3,
+            }
 
 TRUSTREGION_PARAM = {"length_init_discrete": 40} # 40
 
