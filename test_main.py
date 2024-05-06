@@ -104,10 +104,19 @@ def main():
         default=bp["maximum_number_evaluations_until_input_dim"],
         help='[Bounce] adjusting init sampling sizes until reaching input dimensions'
     )
+    # parser.add_argument(
+    #     "--noise_free",
+    #     action='store_true',
+    #     help='[Noise] If you want to run benchmarking in a noise-free experiment, trigger this'
+    # )
     parser.add_argument(
-        "--noise_free",
-        action='store_true',
-        help='[Noise] If you want to run benchmarking in a noise-free experiment, trigger this'
+        "--noise_mode",
+        type=int,
+        choices=[1, 2, 3],
+        help='[Noise] Choose noise mode, \
+                1: a noisy observation mode, \
+                2: a noise-free mode w repeated evaluating, \
+                3: a noise-free mode w repeated experiments'
     )
     parser.add_argument(
         "--debugging",
@@ -208,7 +217,7 @@ def main():
                 n_init=args.n_init,
                 max_eval=args.max_eval,
                 max_eval_until_input=args.max_eval_until_input,
-                noise_free=args.noise_free,
+                noise_mode=args.noise_mode,
             #   gp_mode=args.gp
                 )
         case "hesbo":
@@ -249,12 +258,12 @@ if __name__ == "__main__":
     except:
         logger.exception("ERROR!!")
                
-        if DEBUGGING_MODE:
-            logging.info("Skipping stop GCP instance")    
-        else:
-            logging.info("[Google Cloud Platform|Dataproc] ⛔ Stop Spark instances")
-            from envs.params import GCP_DATAPROC_STOP_COMMAND
-            os.system(GCP_DATAPROC_STOP_COMMAND)
+        # if DEBUGGING_MODE:
+        #     logging.info("Skipping stop GCP instance")    
+        # else:
+        #     logging.info("[Google Cloud Platform|Dataproc] ⛔ Stop Spark instances")
+        #     from envs.params import GCP_DATAPROC_STOP_COMMAND
+        #     os.system(GCP_DATAPROC_STOP_COMMAND)
     else:
         logger.handlers.clear()
 
