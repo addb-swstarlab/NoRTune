@@ -36,6 +36,7 @@ def get_gp(
     continuous_ard: bool = True,
     neighbor_distance: float = 0.01,
     pseudo_point_mode: float = True,
+    pseudo_point_ratio: float = 1.0,
     # gp_mode: str = 'fixednoisegp'
 ) -> tuple[SingleTaskGP, Tensor, Tensor]:
     """
@@ -116,15 +117,26 @@ def get_gp(
 
     if pseudo_point_mode:
         ###############PSEUDO-POINTS###############
-        pseudo_point_x = torch.zeros(train_x.shape)
-        pseudo_point_fx = torch.zeros(train_fx.shape)
+        ###############Developed by TuRBO##################################
+        # pseudo_point_x = torch.zeros(train_x.shape)
+        # pseudo_point_fx = torch.zeros(train_fx.shape)
         
-        choose_number = sample(range(0, len(train_x)), len(train_x) - 1)
+        # choose_number = sample(range(0, len(train_x)), len(train_x) - 1)
         
-        for n in choose_number:
-            pseudo_point_x[n] = train_x[n]
-            pseudo_point_fx[n] = train_fx[n]
-            
+        # for n in choose_number:
+        #     pseudo_point_x[n] = train_x[n]
+        #     pseudo_point_fx[n] = train_fx[n]
+        ##################################################################
+        
+        ################Developed by me###################################
+        _, indices = torch.sort(train_fx, dim=0)
+        n_pp = int(len(indices) * pseudo_point_ratio)
+        best_indices = indices[:n_pp]
+        
+        pseudo_point_x = train_x[best_indices].squeeze().clone()
+        pseudo_point_fx = train_fx[best_indices].squeeze(1).clone()
+        ##################################################################
+        
         for x, fx in zip(pseudo_point_x, pseudo_point_fx):
             for _ in range(len(x)):
                 x[_] = uniform(x[_] - neighbor_distance, x[_] + neighbor_distance)
