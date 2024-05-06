@@ -20,7 +20,7 @@ from envs.spark import SparkEnv
 from envs.params import print_params
 from envs.params import BOUNCE_PARAM as bp
 
-logger = get_logger()
+logger = get_logger('logs')
 os.system('clear')
 DEBUGGING_MODE = False
 
@@ -61,6 +61,12 @@ def main():
         action='store_false',
         help='[BO-PP] If you want to run without a BO-PP module, trigger this'
     )
+    parser.add_argument(
+        "--bopp_ratio",
+        type=float,
+        default=1.0,
+        help='[BO-PP] Adjusting using best sample ratio for a BO-PP'
+    )
     # parser.add_argument(
     #     "--gp",
     #     type=str,
@@ -98,10 +104,19 @@ def main():
         default=bp["maximum_number_evaluations_until_input_dim"],
         help='[Bounce] adjusting init sampling sizes until reaching input dimensions'
     )
+    # parser.add_argument(
+    #     "--noise_free",
+    #     action='store_true',
+    #     help='[Noise] If you want to run benchmarking in a noise-free experiment, trigger this'
+    # )
     parser.add_argument(
-        "--noise_free",
-        action='store_true',
-        help='[Noise] If you want to run benchmarking in a noise-free experiment, trigger this'
+        "--noise_mode",
+        type=int,
+        choices=[1, 2, 3],
+        help='[Noise] Choose noise mode, \
+                1: a noisy observation mode, \
+                2: a noise-free mode w repeated evaluating, \
+                3: a noise-free mode w repeated experiments'
     )
     parser.add_argument(
         "--debugging",
@@ -121,6 +136,7 @@ def main():
     global DEBUGGING_MODE
     DEBUGGING_MODE = True if args.debugging else False
     
+    
     logging.basicConfig(
         level=logging.INFO,
         format=f"{BColors.LIGHTGREY} %(levelname)s:%(asctime)s - (%(filename)s:%(lineno)d) - %(message)s {BColors.ENDC}",
@@ -134,9 +150,6 @@ def main():
         logging.info(INCPP_NAME)
     elif args.method == 'hesbo':
         logging.info(HESBO_NAME)            
-
-    
-
 
     # parser.add_argument(
     #     "--gin-files",
@@ -194,12 +207,13 @@ def main():
                 benchmark=benchmark, 
                 neighbor_distance=args.neighbor, 
                 pseudo_point=args.wo_bopp,
+                pseudo_point_ratio=args.bopp_ratio,
                 initial_target_dimensionality=args.target_dim,
                 bin=args.bin,
                 n_init=args.n_init,
                 max_eval=args.max_eval,
                 max_eval_until_input=args.max_eval_until_input,
-                noise_free=args.noise_free,
+                noise_mode=args.noise_mode,
             #   gp_mode=args.gp
                 )
         case "hesbo":
@@ -239,7 +253,7 @@ if __name__ == "__main__":
         main()
     except:
         logger.exception("ERROR!!")
-        
+               
         if DEBUGGING_MODE:
             logging.info("Skipping stop GCP instance")    
         else:
