@@ -112,11 +112,18 @@ def main():
     parser.add_argument(
         "--noise_mode",
         type=int,
-        choices=[1, 2, 3],
+        choices=[1, 2, 3, 4],
         help='[Noise] Choose noise mode, \
                 1: a noisy observation mode, \
                 2: a noise-free mode w repeated evaluating, \
-                3: a noise-free mode w repeated experiments'
+                3: a noise-free mode w repeated experiments, \
+                4: an adaptive noisy observation mode.'
+    )
+    parser.add_argument(
+        "--noise_threshold",
+        type=float,
+        default= 1,
+        help='[Noise] Define std threshold to adjust a degree of noise'
     )
     parser.add_argument(
         "--debugging",
@@ -214,6 +221,7 @@ def main():
                 max_eval=args.max_eval,
                 max_eval_until_input=args.max_eval_until_input,
                 noise_mode=args.noise_mode,
+                noise_threshold=args.noise_threshold,
             #   gp_mode=args.gp
                 )
         case "hesbo":
