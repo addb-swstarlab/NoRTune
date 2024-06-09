@@ -99,14 +99,14 @@ class SparkTuning(Benchmark):
         
         f.close()
         
-    def apply_and_run_configuration(self):
+    def apply_and_run_configuration(self, load:bool):
         self.env.apply_configuration()
-        self.env.run_configuration()
+        self.env.run_configuration(load)
     
     def get_results(self) -> float:
         return self.env.get_results()
 
-    def __call__(self, x: torch.Tensor) -> torch.Tensor:
+    def __call__(self, x: torch.Tensor, load:bool=True) -> torch.Tensor:
         """
         Minimizing results
         Args:
@@ -125,7 +125,7 @@ class SparkTuning(Benchmark):
             x_ = x_.squeeze()
         
             self.save_configuration_file(x_)           
-            self.apply_and_run_configuration()
+            self.apply_and_run_configuration(load)
             
             res_ = self.get_results()
             res.append(res_)
