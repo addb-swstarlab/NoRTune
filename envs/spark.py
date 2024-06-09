@@ -66,11 +66,11 @@ class SparkEnv:
         else:
             self._apply_configuration(config_path)
             
-    def run_configuration(self):
+    def run_configuration(self, load:bool):
         if self.debugging:
-            logging.info("DEBUGGING MODE, skipping to benchmark the given configuration")
+            logging.info(f"DEBUGGING MODE, skipping to benchmark the given configuration --> ### LOAD? {load}")
         else:
-            self._run_configuration()
+            self._run_configuration(load)
             
     def get_results(self):
         if self.debugging:
@@ -97,13 +97,16 @@ class SparkEnv:
         logging.info("Applying created configuration to the remote Spark server.. 💨💨")
         os.system(f'scp {config_path} {p.MASTER_ADDRESS}:{p.MASTER_CONF_PATH}/add-spark.conf')
         
-    def _run_configuration(self):
+    def _run_configuration(self, load:bool):
         """
             TODO:
             !!A function to Save configuration should be implemented on other files!!
         """
         
-        exit_code = os.system(f'timeout 1000 ssh {p.MASTER_ADDRESS} "bash --noprofile --norc -c scripts/run_{self.workload}.sh"')
+        if load:
+            os.system(f'timeout 1000 ssh {p.MASTER_ADDRESS} "bash --noprofile --norc -c scripts/prepare_wk/load_{self.workload}.sh"')
+        
+        exit_code = os.system(f'timeout 1000 ssh {p.MASTER_ADDRESS} "bash --noprofile --norc -c scripts/run_wk/run_{self.workload}.sh"')
         # exit_code = os.system(f'ssh {p.MASTER_ADDRESS} "bash --noprofile --norc -c scripts/run_{self.workload}.sh"')
         # exit_code = os.system(f'ssh {p.MASTER_ADDRESS} "bash --noprofile --norc -c scripts/run_bayes.sh"')
         if exit_code > 0:
