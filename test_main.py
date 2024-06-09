@@ -30,13 +30,26 @@ def main():
         description="Bounce: Reliable High-Dimensional Bayesian Optimization Algorithm for Combinatorial and Mixed Spaces",
         epilog="For more information, please contact the author.",
     )
-    
     parser.add_argument(
-        "--method",
+        "--model_name",
+        type=str,
+        default='not named',
+        help='Define a model name for this experiment'
+    )
+    parser.add_argument(
+        "--optimizer_method",
         type=str,
         default='bounce',
+        choices=['bounce', 'random', 'incpp', 'bo', 'smac'],
         help='bounce, random, ...'
     )
+    parser.add_argument(
+        "--embedding_method",
+        type=str,
+        default='bounce',
+        choices=['hesbo', 'rembo', 'none'],
+        help='bounce, random, ...'
+    )    
     parser.add_argument(
         "--workload",
         type=str,
@@ -112,12 +125,19 @@ def main():
     parser.add_argument(
         "--noise_mode",
         type=int,
-        choices=[1, 2, 3],
+        choices=[1, 2, 3, 4],
         help='[Noise] Choose noise mode, \
                 1: a noisy observation mode, \
                 2: a noise-free mode w repeated evaluating, \
-                3: a noise-free mode w repeated experiments'
+                3: a noise-free mode w repeated experiments, \
+                4: an adaptive noisy observation mode.'
     )
+    parser.add_argument(
+        "--noise_threshold",
+        type=float,
+        default= 1,
+        help='[Noise] Define std threshold to adjust a degree of noise'
+    )        
     parser.add_argument(
         "--debugging",
         action='store_true',
@@ -146,14 +166,16 @@ def main():
         format=f"{BColors.LIGHTGREY} %(levelname)s:%(asctime)s - (%(filename)s:%(lineno)d) - %(message)s {BColors.ENDC}",
     )
 
-    if args.method == 'bounce':
+    if args.optimizer_method == 'bounce':
         logging.info(BOUNCE_NAME)
-    elif args.method == 'random':
+    elif args.optimizer_method == 'random':
         logging.info(RANDOM_NAME)
-    elif args.method == 'incpp':
+    elif args.optimizer_method == 'incpp':
         logging.info(INCPP_NAME)
-    elif args.method == 'hesbo':
-        logging.info(HESBO_NAME)            
+    else:
+        logging.info("🟥🟧🟨🟩🟦🟪🟦🟩🟨🟧🟥")
+        logging.info(args.model_name)
+        logging.info("🟥🟧🟨🟩🟦🟪🟦🟩🟨🟧🟥")           
 
     # parser.add_argument(
     #     "--gin-files",
@@ -183,7 +205,7 @@ def main():
 
     env = None
     
-    match args.method:
+    match args.optimizer_method:
         case "bounce":
             env = SparkEnv(
                 workload=args.workload,
@@ -218,21 +240,36 @@ def main():
                 max_eval=args.max_eval,
                 max_eval_until_input=args.max_eval_until_input,
                 noise_mode=args.noise_mode,
+                noise_threshold=args.noise_threshold,
             #   gp_mode=args.gp
                 )
-        case "hesbo":
+        case "smac":
             benchmark = Benchmark(
                 workload=args.workload,
                 workload_size=args.workload_size,
                 debugging=args.debugging,
-                embed_adapter_alias=args.method,
+                embed_adapter_alias=args.embedding_method,
                 target_dim=args.target_dim,
                 quantization_factor=args.q_factor,
                 )
             tuner = Baselines(
-                method=args.method,
+                optimizer_method=args.optimizer_method,
+                embedding_method=args.embedding_method,
                 benchmark=benchmark
                 )
+        case "bo":
+            benchmark = Benchmark(workload=args.workload,
+                                  workload_size=args.workload_size,
+                                  debugging=args.debugging,
+                                  embed_adapter_alias=args.embedding_method,
+                                  target_dim=args.target_dim,
+                                  quantization_factor=args.q_factor,
+                                  )
+            tuner = Baselines(
+                optimizer_method=args.optimizer_method,
+                embedding_method=args.embedding_method,
+                benchmark=benchmark
+                )    
         case _:
             assert False, "The method is not defined.. Choose in [bounce, random]"
     
@@ -242,13 +279,13 @@ def main():
     now = time.time()
     logger.info(f"Total time: {now - then:.2f} seconds")
     
-    if env is not None:
-        env.clear_spark_storage()
-        env.stop_dataproc()
-    else: 
-        # the case for random search module
-        benchmark.clear_spark_storage()
-        benchmark.stop_dataproc()
+    # if env is not None:
+    #     env.clear_spark_storage()
+    #     env.stop_dataproc()
+    # else: 
+    #     # the case for random search module
+    #     benchmark.clear_spark_storage()
+    #     benchmark.stop_dataproc()
     
 
 
@@ -266,4 +303,3 @@ if __name__ == "__main__":
         #     os.system(GCP_DATAPROC_STOP_COMMAND)
     else:
         logger.handlers.clear()
-
