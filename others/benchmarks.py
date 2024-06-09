@@ -41,12 +41,12 @@ class Benchmark(SparkBench):
         return self.embedding_adapter.target
         
     
-    def evaluate(self, sample: Configuration, seed: int = 0) -> float:
+    def evaluate(self, sample: Configuration, load: bool, seed: int = 0) -> float:
         if self.embed_adapter_alias in ['rembo', 'hesbo']:
             sample = self.embedding_adapter.unproject_point(sample)
         
         self.save_configuration_file(sample)
-        self.apply_and_run_configuration()
+        self.apply_and_run_configuration(load)
 
         res = self.get_results()
         return res
