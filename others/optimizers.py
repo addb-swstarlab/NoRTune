@@ -1,10 +1,11 @@
 import os, json, logging
-from statistics import mean
+from statistics import mean, stdev
 from ConfigSpace import Configuration
 from smac.scenario import Scenario
 from smac import HyperparameterOptimizationFacade
 from smac import BlackBoxFacade
 from smac.model.random_forest.random_forest import RandomForest
+from smac.model.gaussian_process.gaussian_process import GaussianProcess
 from smac.random_design.probability_design import ProbabilityRandomDesign
 
 from envs.params import BOUNCE_PARAM as bp
@@ -15,13 +16,15 @@ from others.benchmarks import Benchmark
 class Baselines:
     def __init__(
         self, 
-        method: str, # ['rembo', 'hesbo', 'ddpg']
+        embedding_method: str, # ['rembo', 'hesbo', 'ddpg']
+        optimizer_method: str, # ['smac', 'bo']
         benchmark: Benchmark,
         maximum_number_evaluations: int = bp["maximum_number_evaluations"],
         rand_percentage: float = 0.1,
         n_estimators: int = 100,
     ):
-        self.method = method
+        self.embedding_method = embedding_method
+        self.optimizer_method = optimizer_method
         self.benchmark = benchmark
         self.rand_percentage = rand_percentage
         self.n_estimators = n_estimators
@@ -39,7 +42,7 @@ class Baselines:
         )
     
     def _set_result_dir(self, path=os.path.join(p.HOME_PATH, p.PROJECT_NAME)):
-        self.results_dir = get_foldername(os.path.join(path, f"{self.method}_results"))
+        self.results_dir = get_foldername(os.path.join(path, f"{self.embedding_method}_results"))
         os.makedirs(self.results_dir, exist_ok=True)
         logging.info(f"Results are saved in .. {self.results_dir}")
         f = open(os.path.join(self.results_dir, 'workload.txt'), 'w')
@@ -58,7 +61,7 @@ class Baselines:
         self._repeated_y = []
     
     def add_observation(self, config: Configuration, res: float, r_res: list=None):
-        if self.method in ['rembo', 'hesbo']:
+        if self.embedding_method in ['rembo', 'hesbo']:
             x: dict = self.benchmark.embedding_adapter.unproject_point(config)
         else:
             x = config.get_dictionary()
@@ -70,25 +73,40 @@ class Baselines:
         
     
     def get_tuner(self):
-        optimizer = HyperparameterOptimizationFacade(
-            scenario=self.scenario,
-            target_function=self.target_function,
-            model=RandomForest(
+        if self.optimizer_method == 'smac':
+            optimizer = HyperparameterOptimizationFacade(
+                scenario=self.scenario,
+                target_function=self.target_function,
+                model=RandomForest(
+                        configspace=self.input_space,
+                        log_y=False,
+                        n_trees=self.n_estimators,
+                        ratio_features=1,
+                        min_samples_split=2,
+                        min_samples_leaf=3,
+                    ),
+                random_design=ProbabilityRandomDesign(self.rand_percentage),
+            )
+        elif self.optimizer_method == 'bo':
+            optimizer = BlackBoxFacade(
+                scenario=self.scenario,
+                target_function=self.target_function,
+                model=GaussianProcess(
                     configspace=self.input_space,
-                    log_y=False,
-                    n_trees=self.n_estimators,
-                    ratio_features=1,
-                    min_samples_split=2,
-                    min_samples_leaf=3,
+                    kernel=BlackBoxFacade.get_kernel(scenario=self.scenario),
+                    normalize_y=True
                 ),
-            random_design=ProbabilityRandomDesign(self.rand_percentage),
-        )
+                random_design=ProbabilityRandomDesign(self.rand_percentage)
+            )
+        else:
+            assert False, "Please define optimizer method to smac or bo."
         return optimizer
+
 
     def target_function(self, x: Configuration, seed: int=0) -> float:
         r_fx = []
         for _ in range(p.BENCHMARKING_REPETITION):
-            fx = self.benchmark.evaluate(x, seed=seed)
+            fx = self.benchmark.evaluate(x, seed=seed, load=True if _ == 0 else False)
             r_fx.append(fx)
         mean_fx = mean(r_fx)
 
@@ -101,6 +119,7 @@ class Baselines:
             
             f = open(p.SPARK_CONF_PATH, 'r')
             self.best_config = f.readlines()
+            self.best_x = x
         else:    
             logging.info(f"💦 Best function value is still {self.best_res}")
         
@@ -127,6 +146,12 @@ class Baselines:
         logging.info("......................")
         
         self._save_observations_to_json()
+        
+        best_ys = []
+        for _ in range(p.BENCHMARKING_REPETITION):
+            best_y = self.benchmark.evaluate(self.best_x, load=True if _ == 0 else False)
+            best_ys.append(best_y)
+        logging.info(f"Results = {best_ys} , Mean = {mean(best_ys):.3f} (±{stdev(best_ys):.3f})")
         
     def _save_observations_to_json(self):
         logging.info("💬 saving observations to json files..")
