@@ -30,13 +30,26 @@ def main():
         description="Bounce: Reliable High-Dimensional Bayesian Optimization Algorithm for Combinatorial and Mixed Spaces",
         epilog="For more information, please contact the author.",
     )
-    
     parser.add_argument(
-        "--method",
+        "--model_name",
+        type=str,
+        default='not named',
+        help='Define a model name for this experiment'
+    )
+    parser.add_argument(
+        "--optimizer_method",
         type=str,
         default='bounce',
+        choices=['bounce', 'random', 'incpp', 'bo', 'smac'],
         help='bounce, random, ...'
     )
+    parser.add_argument(
+        "--embedding_method",
+        type=str,
+        default='bounce',
+        choices=['hesbo', 'rembo', 'none'],
+        help='bounce, random, ...'
+    )    
     parser.add_argument(
         "--workload",
         type=str,
@@ -149,14 +162,18 @@ def main():
         format=f"{BColors.LIGHTGREY} %(levelname)s:%(asctime)s - (%(filename)s:%(lineno)d) - %(message)s {BColors.ENDC}",
     )
 
-    if args.method == 'bounce':
+    if args.optimizer_method == 'bounce':
         logging.info(BOUNCE_NAME)
-    elif args.method == 'random':
+    elif args.optimizer_method == 'random':
         logging.info(RANDOM_NAME)
-    elif args.method == 'incpp':
+    elif args.optimizer_method == 'incpp':
         logging.info(INCPP_NAME)
-    elif args.method == 'hesbo':
-        logging.info(HESBO_NAME)            
+    else:
+        logging.info("🟥🟧🟨🟩🟦🟪🟦🟩🟨🟧🟥")
+        logging.info(args.model_name)
+        logging.info("🟥🟧🟨🟩🟦🟪🟦🟩🟨🟧🟥")
+    # elif args.method == 'hesbo':
+    #     logging.info(HESBO_NAME)            
 
     # parser.add_argument(
     #     "--gin-files",
@@ -186,7 +203,7 @@ def main():
 
     env = None
     
-    match args.method:
+    match args.optimizer_method:
         case "bounce":
             env = SparkEnv(
                 workload=args.workload,
@@ -224,17 +241,31 @@ def main():
                 noise_threshold=args.noise_threshold,
             #   gp_mode=args.gp
                 )
-        case "hesbo":
+        case "smac":
             benchmark = Benchmark(
                 workload=args.workload,
                 workload_size=args.workload_size,
                 debugging=args.debugging,
-                embed_adapter_alias=args.method,
+                embed_adapter_alias=args.embedding_method,
                 target_dim=args.target_dim,
                 quantization_factor=args.q_factor,
                 )
             tuner = Baselines(
-                method=args.method,
+                optimizer_method=args.optimizer_method,
+                embedding_method=args.embedding_method,
+                benchmark=benchmark
+                )
+        case "bo":
+            benchmark = Benchmark(workload=args.workload,
+                                  workload_size=args.workload_size,
+                                  debugging=args.debugging,
+                                  embed_adapter_alias=args.embedding_method,
+                                  target_dim=args.target_dim,
+                                  quantization_factor=args.q_factor,
+                                  )
+            tuner = Baselines(
+                optimizer_method=args.optimizer_method,
+                embedding_method=args.embedding_method,
                 benchmark=benchmark
                 )
         case _:
