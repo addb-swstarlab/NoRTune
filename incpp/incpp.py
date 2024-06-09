@@ -145,18 +145,18 @@ class incPP(Bounce):
             x_categorical=types_points_and_indices[ParameterType.CATEGORICAL][0],
             x_ordinal=types_points_and_indices[ParameterType.ORDINAL][0],
         )
-        #########################################
-        if self.noise_mode == n['NOISY_OBSERVATIONS']:                  # self.noise_mode = 1
-            x_init = x_init.repeat(BENCHMARKING_REPETITION, 1)
-        elif self.noise_mode == n['NOISE_FREE_REPEATED_BENCHMARKING']:  # self.noise_mode = 2
-            pass
-        elif self.noise_mode == n["NOISE_FREE_REPEATED_EXPERIMENTS"]:   # self.noise_mode = 3
-            pass
-        elif self.noise_mode == n["ADAPTIVE_NOISE"]:                    # self.noise_mode = 4
-            pass
-        else:
-            assert False, "Error with defining nosie mode"
-        #########################################
+        # #########################################
+        # if self.noise_mode == n['NOISY_OBSERVATIONS']:                  # self.noise_mode = 1
+        #     x_init = x_init.repeat(BENCHMARKING_REPETITION, 1)
+        # elif self.noise_mode == n['NOISE_FREE_REPEATED_BENCHMARKING']:  # self.noise_mode = 2
+        #     pass
+        # elif self.noise_mode == n["NOISE_FREE_REPEATED_EXPERIMENTS"]:   # self.noise_mode = 3
+        #     pass
+        # elif self.noise_mode == n["ADAPTIVE_NOISE"]:                    # self.noise_mode = 4
+        #     pass
+        # else:
+        #     assert False, "Error with defining nosie mode"
+        # #########################################
         # if self.noise_mode:
         #     pass
         # else:
@@ -171,34 +171,68 @@ class incPP(Bounce):
         
         fx_inits = None
         
-        if self.noise_mode == n['NOISE_FREE_REPEATED_BENCHMARKING']:
+        if self.noise_mode == n['NOISY_OBSERVATIONS']: # self.noise_mode = 1
+            fx_init = torch.Tensor() # tensor([n, ])
+            
+            for _ in range(x_init_up.size(0)):
+                _fx = torch.concat([
+                    self.benchmark(x_init_up[r].unsqueeze(0), load=False if r > 0 else True).unsqueeze(1) 
+                    for r in range(BENCHMARKING_REPETITION)], 
+                                   dim=1)
+                fx_init = torch.concat([fx_init, _fx.squeeze()])
+            x_init = torch.concat([r.repeat(BENCHMARKING_REPETITION, 1) for r in x_init])
+            x_init_up = torch.concat([r.repeat(BENCHMARKING_REPETITION, 1) for r in x_init_up])
+        
+        elif self.noise_mode == n['NOISE_FREE_REPEATED_BENCHMARKING']: # self.noise_mode = 2
             '''
                 fx_inits = tensor([[y1_1, y1_2, y1_3], [y2_1, y2_2, y2_3], ...])
                 fx_init = tensor([y1, y2, y3, y4, ...])
             '''
-            fx_inits = torch.concat([self.benchmark(x_init_up).unsqueeze(1) for _ in range(BENCHMARKING_REPETITION)], dim=1)
-            # fx_inits = torch.concat(fx_inits, dim=1)
+            fx_inits = torch.Tensor()
+            
+            for _ in range(x_init_up.size(0)):
+                _fx = torch.concat([
+                    self.benchmark(x_init_up[r].unsqueeze(0), load=False if r > 0 else True).unsqueeze(1) 
+                    for r in range(BENCHMARKING_REPETITION)], 
+                                   dim=1)
+                fx_inits = torch.concat([fx_inits, _fx])            
             fx_init = fx_inits.mean(1)
         elif self.noise_mode == n['ADAPTIVE_NOISE']:
-            fx_inits = torch.concat([self.benchmark(x_init_up).unsqueeze(1) for _ in range(BENCHMARKING_REPETITION)], dim=1)
-            fx_inits_std = torch.std(fx_inits, dim=1)
+            new_x_init_up = torch.Tensor() # tensor([n, high_dim])
+            new_x_init = torch.Tensor() # tensor([n, low_dim])
+            fx_inits = torch.Tensor() # tensor([n, repetition_times])
+            fx_init = torch.Tensor() # tensor([n, ])
             
-            fx_init = torch.zeros((x_init_up.shape[0]), dtype=self.dtype)
-            # new_x_init = torch.tensor([], dtype=self.dtype)
-            # new_x_init_up = torch.tensor([], dtype=self.dtype)
-            idx = 0
-            for fx_init_std in fx_inits_std:
-                if fx_init_std > self.noise_threshold:
-                    logging.info(f"[{idx}/{self.number_initial_points}] {fx_init_std} > {self.noise_threshold} --> 🔼 HIGH NOISE")
-                    fx_init[idx] = fx_inits[idx][0]
-                    fx_init = torch.cat((fx_init, fx_inits[idx][1:].squeeze()))
-                    x_init = torch.cat((x_init, x_init[idx].repeat(BENCHMARKING_REPETITION - 1, 1)))
-                    x_init_up = torch.cat((x_init_up, x_init_up[idx].repeat(BENCHMARKING_REPETITION - 1, 1)))
+            for _ in range(x_init_up.size(0)):
+                _fxs = torch.concat([
+                    self.benchmark(x_init_up[r].unsqueeze(0), load=False if r > 0 else True).unsqueeze(1) 
+                    for r in range(BENCHMARKING_REPETITION)], 
+                                   dim=1)
+                fx_inits = torch.concat([fx_inits, _fxs])
+                
+                _std = torch.std(_fxs, dim=1)
+                
+                if _std > self.noise_threshold:
+                    logging.info(f"[{_}/{self.number_initial_points}] {_std.item()} > {self.noise_threshold} --> 🔼 HIGH NOISE")
+                    
+                    fx_init = torch.concat([fx_init, _fxs.squeeze()])
+                    new_x_init_up = torch.concat([new_x_init_up, x_init_up[_].repeat(BENCHMARKING_REPETITION, 1)])
+                    new_x_init = torch.concat([new_x_init, x_init[_].repeat(BENCHMARKING_REPETITION, 1)])
+                    logging.info(f"fx_init : {fx_init.shape}")
+                    logging.info(f"new_x_init_up : {new_x_init_up.shape}")
+                    logging.info(f"new_x_init : {new_x_init.shape}")
                 else:
-                    logging.info(f"[{idx}/{self.number_initial_points}] {fx_init_std} <= {self.noise_threshold} --> 🔽 LOW NOISE")
-                    fx_init[idx] = fx_inits[idx].mean()
-                idx += 1
-                logging.info(f"Data saved to.. \nx_init: {x_init.size()} | x_init_up: {x_init_up.size()} | fx_init: {fx_init.size()}")
+                    logging.info(f"[{_}/{self.number_initial_points}] {_std.item()} <= {self.noise_threshold} --> 🔽 LOW NOISE")
+                    fx_init = torch.concat([fx_init, _fxs.mean(1)])
+                    new_x_init_up = torch.concat([new_x_init_up, x_init_up[_].repeat(1, 1)])
+                    new_x_init = torch.concat([new_x_init, x_init[_].repeat(1, 1)])
+                    logging.info(f"fx_init : {fx_init.shape}")
+                    logging.info(f"new_x_init_up : {new_x_init_up.shape}")
+                    logging.info(f"new_x_init : {new_x_init.shape}")
+                logging.info(f"Data saved to.. \nnew_x_init: {new_x_init.size()} | new_x_init_up: {new_x_init_up.size()} | fx_init: {fx_init.size()}")
+
+            x_init_up = new_x_init_up
+            x_init = new_x_init
         else:
             fx_init = self.benchmark(x_init_up)
         
@@ -210,6 +244,7 @@ class incPP(Bounce):
         )
         
         self._n_evals += self.number_initial_points
+        logging.info("🎁#🎁#🎁#🎁 Finished Sampling 🎁#🎁#🎁#🎁")
         
     def run(self):
         """
@@ -441,7 +476,12 @@ class incPP(Bounce):
             y_nexts = None
             if self.noise_mode == n['NOISY_OBSERVATIONS']:
                 # Sample on the candidate points
-                y_next = self.benchmark(cand_batch.repeat(BENCHMARKING_REPETITION, 1)) # [n*BR, 1]
+                # y_next = [n*BR, 1]
+                y_next = torch.concat([ 
+                    self.benchmark(cand_batch.unsqueeze(0), load=False if r > 0 else True).unsqueeze(1) 
+                    for r in range(BENCHMARKING_REPETITION)], 
+                                   dim=1)
+                # y_next = self.benchmark(cand_batch.repeat(BENCHMARKING_REPETITION, 1)) # [n*BR, 1]
                 
                 model.eval()
                 model.likelihood.eval()
@@ -484,10 +524,14 @@ class incPP(Bounce):
                     )
                 
                 xs_low_dim = xs_low_dim * BENCHMARKING_REPETITION
-                xs_high_dim = xs_low_dim * BENCHMARKING_REPETITION
+                xs_high_dim = xs_high_dim * BENCHMARKING_REPETITION
                     
             elif self.noise_mode == n['NOISE_FREE_REPEATED_BENCHMARKING']:
-                y_nexts = torch.concat([self.benchmark(cand_batch).unsqueeze(1) for _ in range(BENCHMARKING_REPETITION)], dim=1)
+                y_nexts = torch.concat([ 
+                    self.benchmark(cand_batch.unsqueeze(0), load=False if r > 0 else True).unsqueeze(1) 
+                    for r in range(BENCHMARKING_REPETITION)], 
+                                   dim=1)
+                # y_nexts = torch.concat([self.benchmark(cand_batch).unsqueeze(1) for _ in range(BENCHMARKING_REPETITION)], dim=1)
                 # y_nexts = torch.concat(y_nexts, dim=1)
                 y_next = y_nexts.mean(1)
                 
@@ -527,7 +571,10 @@ class incPP(Bounce):
                     )
             elif self.noise_mode == n["ADAPTIVE_NOISE"]:
                 # Sample on the candidate points
-                y_nexts = torch.concat([self.benchmark(cand_batch).unsqueeze(1) for _ in range(BENCHMARKING_REPETITION)], dim=1)
+                y_nexts = torch.concat([ 
+                    self.benchmark(cand_batch.unsqueeze(0), load=False if r > 0 else True).unsqueeze(1) 
+                    for r in range(BENCHMARKING_REPETITION)], 
+                                   dim=1)
                 
                 model.eval()
                 model.likelihood.eval()
@@ -708,7 +755,7 @@ class incPP(Bounce):
         
         best_ys = []
         for _ in range(BENCHMARKING_REPETITION):
-            best_y = self.benchmark(best_x.unsqueeze(0))
+            best_y = self.benchmark(best_x.unsqueeze(0), load=True if _==0 else False)
             best_ys.append(best_y.item())
         
         from statistics import mean, stdev
