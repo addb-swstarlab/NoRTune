@@ -1,7 +1,7 @@
 import os
 import json
 import logging
-from statistics import mean
+from statistics import mean, stdev
 # from random_search.benchmarks import SparkBench
 from envs.utils import get_foldername
 from envs.params import BOUNCE_PARAM as bp, BENCHMARKING_REPETITION
@@ -43,7 +43,7 @@ class RandomSearch: # Random Optimizer?
             
             res_ = []
             for _ in range(BENCHMARKING_REPETITION):
-                self.benchmark.apply_and_run_configuration()
+                self.benchmark.apply_and_run_configuration(load=True if _ == 0 else False)
                 res_.append(self.benchmark.get_results()) 
                 repeated_configs.append(sampled_config.get_dictionary())
                 repeated_results.append(res_)
@@ -58,6 +58,7 @@ class RandomSearch: # Random Optimizer?
                 # best_config = sampled_config
                 f = open('/home/jieun/SparkTuning/data/add-spark.conf', 'r')
                 best_config = f.readlines()
+                best_config_dict = sampled_config
                 
             configs.append(sampled_config.get_dictionary())
             results.append(res)
@@ -85,6 +86,12 @@ class RandomSearch: # Random Optimizer?
         #     logging.info(l)
         logging.info("......................")
         
+        best_ys = []
+        self.benchmark.save_configuration_file(best_config_dict)
+        for _ in range(BENCHMARKING_REPETITION):
+            self.benchmark.apply_and_run_configuration(load=True if _ == 0 else False)
+            best_ys.append(self.benchmark.get_results()) 
+        logging.info(f"Results = {best_ys} , Mean = {mean(best_ys):.3f} (±{stdev(best_ys):.3f})")         
         # self.benchmark.calculate_improvement_from_default(best_res)    
     
     # def run(self):
