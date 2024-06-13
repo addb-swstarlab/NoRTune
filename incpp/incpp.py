@@ -594,7 +594,10 @@ class incPP(Bounce):
                 
                 matches = (self.x_tr == self.x_tr[best_idx]).all(dim=1)
                 best_indices = matches.nonzero(as_tuple=True)[0]
-                best_real_fxs = self.fx_tr[best_indices]
+                if len(best_indices) > 1:
+                    best_indices = torch.randint(len(best_indices), (1,))
+                best_real_fxs = self.fx_repeated[best_indices]
+                # best_real_fxs = self.fx_tr[best_indices]
                 ''' NOTE:
                         min_y_next : the min value from repeated results of a candidate.
                         best_pred_fx_by_gp : the best value chosen from predictions, which are posterior means of the GP model, except a current candidate
@@ -620,7 +623,7 @@ class incPP(Bounce):
                 
                 if y_std > self.noise_threshold:
                     logging.info(f"[CANDIDATE EVALUATION] {y_std} > {self.noise_threshold} --> 🔼 HIGH NOISE")
-                    y_next = y_nexts
+                    y_next = y_nexts.clone()
                     xs_low_dim = xs_low_dim * BENCHMARKING_REPETITION
                     xs_high_dim = xs_high_dim * BENCHMARKING_REPETITION
                 else:
@@ -674,7 +677,7 @@ class incPP(Bounce):
             self._add_data_to_tr_observations(
                 xs_down=torch.vstack(xs_low_dim), # if self.noise_mode > 1 else torch.vstack(xs_low_dim).repeat(BENCHMARKING_REPETITION, 1),
                 xs_up=torch.vstack(xs_high_dim), # if self.noise_mode > 1 else torch.vstack(xs_high_dim).repeat(BENCHMARKING_REPETITION, 1),
-                fxs=y_next.reshape(-1),
+                fxs=y_next.reshape(-1), # self.fx_tr
                 repeated_fxs=y_nexts,
             )
 
