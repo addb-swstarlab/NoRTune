@@ -86,6 +86,7 @@ class RandomSearch: # Random Optimizer?
         #     logging.info(l)
         logging.info("......................")
         
+        logging.info(f"✨✨✨ Evaluating best x... # of repetitions = {BENCHMARKING_REPETITION} ✨✨✨")
         best_ys = []
         self.benchmark.save_configuration_file(best_config_dict)
         for _ in range(BENCHMARKING_REPETITION):
