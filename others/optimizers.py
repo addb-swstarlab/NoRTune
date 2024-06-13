@@ -147,6 +147,7 @@ class Baselines:
         
         self._save_observations_to_json()
         
+        logging.info(f"✨✨✨ Evaluating best x... # of repetitions = {p.BENCHMARKING_REPETITION} ✨✨✨")
         best_ys = []
         for _ in range(p.BENCHMARKING_REPETITION):
             best_y = self.benchmark.evaluate(self.best_x, load=True if _ == 0 else False)
