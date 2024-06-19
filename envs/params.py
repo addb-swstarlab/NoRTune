@@ -18,6 +18,8 @@ HIBENCH_REPORT_PATH = os.path.join(HOME_PATH, PROJECT_NAME, 'data/hibench.report
 
 # INCUMBENTS_RESULTS_PATH = os.path.join(HOME_PATH, PROJECT_NAME, 'results')
 
+RANDOM_SEED = 1996 # TODO: Change later..
+
 BOUNCE_PARAM = {
                 "number_initial_points": 10,
                 "initial_target_dimensionality": 5,
@@ -39,7 +41,8 @@ NOISE_PARAM = {
                 "NOISY_OBSERVATIONS": 1,
                 "NOISE_FREE_REPEATED_BENCHMARKING": 2,
                 "NOISE_FREE_REPEATED_EXPERIMENTS": 3,
-                "ADAPTIVE_NOISE": 4
+                "ADAPTIVE_NOISE": 4,
+                'NOISE_QUANTILE': 5,
             }
 
 TRUSTREGION_PARAM = {"length_init_discrete": 40} # 40
