@@ -96,7 +96,7 @@ def main():
     parser.add_argument(
         "--n_init",
         type=int,
-        default=10,
+        default=5,
         help='[Bounce] adjusting init sampling sizes'
     )
     parser.add_argument(
@@ -108,13 +108,13 @@ def main():
     parser.add_argument(
         "--max_eval",
         type=int,
-        default=bp["maximum_number_evaluations"],
+        default=10,
         help='[Bounce] adjusting init sampling sizes'
     )
     parser.add_argument(
         "--max_eval_until_input",
         type=int,
-        default=bp["maximum_number_evaluations_until_input_dim"],
+        default=10,
         help='[Bounce] adjusting init sampling sizes until reaching input dimensions'
     )
     # parser.add_argument(
@@ -125,7 +125,7 @@ def main():
     parser.add_argument(
         "--noise_mode",
         type=int,
-        choices=[1, 2, 3, 4],
+        choices=[1, 2, 3, 4, 5],
         help='[Noise] Choose noise mode, \
                 1: a noisy observation mode, \
                 2: a noise-free mode w repeated evaluating, \
