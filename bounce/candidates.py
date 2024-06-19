@@ -65,7 +65,8 @@ def create_candidates_discrete(
 
     # Find the center of the trust region
     # x_centers = torch.clone(x_scaled[fx_scaled.argmin(), :]).detach()
-    if noise_mode == n['NOISY_OBSERVATIONS'] or noise_mode == n['ADAPTIVE_NOISE']:
+    if noise_mode not in [n['NOISE_FREE_REPEATED_BENCHMARKING'], n['NOISE_FREE_REPEATED_EXPERIMENTS']]:
+    # if noise_mode == n['NOISY_OBSERVATIONS'] or noise_mode == n['ADAPTIVE_NOISE']:
         model.eval()
         model.likelihood.eval()
         posterior = model.posterior(x_scaled)
@@ -211,7 +212,8 @@ def create_candidates_discrete(
     # transform to [-1, 1], was [0, 1]
     x_batch_return = x_batch_return * 2 - 1
 
-    if noise_mode == n['NOISY_OBSERVATIONS'] or noise_mode == n['ADAPTIVE_NOISE']:
+    # if noise_mode == n['NOISY_OBSERVATIONS'] or noise_mode == n['ADAPTIVE_NOISE']:
+    if noise_mode not in [n['NOISE_FREE_REPEATED_BENCHMARKING'], n['NOISE_FREE_REPEATED_EXPERIMENTS']]:
         model.eval()
         model.likelihood.eval()
         posterior = model.posterior(x_scaled)
@@ -278,7 +280,8 @@ def create_candidates_continuous(
 
     # Find the center of the trust region
     # x_centers = torch.clone(x_scaled[fx_scaled.argmin(), :]).detach()
-    if noise_mode == n['NOISY_OBSERVATIONS'] or noise_mode == n['ADAPTIVE_NOISE']:
+    # if noise_mode == n['NOISY_OBSERVATIONS'] or noise_mode == n['ADAPTIVE_NOISE']:
+    if noise_mode not in [n['NOISE_FREE_REPEATED_BENCHMARKING'], n['NOISE_FREE_REPEATED_EXPERIMENTS']]:
         model.eval()
         model.likelihood.eval()
         posterior = model.posterior(x_scaled)
@@ -378,7 +381,8 @@ def create_candidates_continuous(
         x_cand_downs[batch_index, :] = x_cand_down
         fx_argmins[batch_index] = -y_cand_down
 
-    if noise_mode == n['NOISY_OBSERVATIONS'] or noise_mode == n['ADAPTIVE_NOISE']:
+    # if noise_mode == n['NOISY_OBSERVATIONS'] or noise_mode == n['ADAPTIVE_NOISE']:
+    if noise_mode not in [n['NOISE_FREE_REPEATED_BENCHMARKING'], n['NOISE_FREE_REPEATED_EXPERIMENTS']]:
         model.eval()
         model.likelihood.eval()
         posterior = model.posterior(x_scaled)
