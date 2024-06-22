@@ -341,7 +341,7 @@ def create_candidates_continuous(
             ), "Either acquisition_function or sampler must be provided"
             x_pending = x_cand_downs[:batch_index, :] if batch_index > 0 else None
             
-            if noise_mode == n['NOISY_OBSERVATIONS'] or noise_mode == n['ADAPTIVE_NOISE']:
+            if noise_mode not in [n['NOISE_FREE_REPEATED_BENCHMARKING'], n['NOISE_FREE_REPEATED_EXPERIMENTS']]:
                 model.eval()
                 model.likelihood.eval()
                 posterior = model.posterior(x_scaled)
