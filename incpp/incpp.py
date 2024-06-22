@@ -331,7 +331,7 @@ class incPP(Bounce):
                 # we don't set the acquisition function here, because it needs to be redefined
                 # for each batch item to be able to condition on the earlier batch items
                 # note that this is the only place where we don't use the acquisition function
-                sampler = SobolQMCNormalSampler(Size([1024]), seed=self._n_evals)
+                sampler = SobolQMCNormalSampler(Size([1024]), seed=RANDOM_SEED)
             else:
                 # use analytical EI for batch size 1
                 # acquisition_function = ExpectedImprovement(
