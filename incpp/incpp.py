@@ -28,7 +28,8 @@ from bounce.util.data_handling import (
     sample_numerical,
 )
 
-from incpp.test_gaussian_process import fit_mll, get_gp
+from incpp.gaussian_process import fit_mll, get_gp
+from incpp.acquisition import AugmentedExpectedImprovement
 from envs.params import BENCHMARKING_REPETITION, RANDOM_SEED
 from envs.params import NOISE_PARAM as n
 
@@ -47,6 +48,8 @@ class incPP(Bounce):
                  noise_mode: int = 1,
                  noise_threshold: float = 1,
                 #  gp_mode: str = 'fixednoisegp',
+                 acquisition: str = 'ei',
+                 aei_factor: float = 1.0,
                  ):
     
         self.benchmark = benchmark
@@ -55,6 +58,8 @@ class incPP(Bounce):
         self.neighbor_distance = neighbor_distance
         self.noise_mode = noise_mode
         self.noise_threshold = noise_threshold
+        self.acquisition = acquisition
+        self.aei_factor = aei_factor
         
         results_dir = 'test_results' if self.benchmark.env.debugging else 'results'
         
@@ -339,12 +344,23 @@ class incPP(Bounce):
                 # )
                 if self.noise_mode not in [n['NOISE_FREE_REPEATED_BENCHMARKING'], n['NOISE_FREE_REPEATED_EXPERIMENTS']]:
                 # if self.noise_mode == n['NOISY_OBSERVATIONS'] or self.noise_mode == n['ADAPTIVE_NOISE']:
-                    model.eval()
-                    model.likelihood.eval()
-                    posterior = model.posterior(x_scaled)
-                    acquisition_function = ExpectedImprovement(
-                        model=model, best_f=posterior.mean.max().item()
-                    )                     
+                    if self.acquisition == 'ei':
+                        # model.eval()
+                        # model.likelihood.eval()
+                        # posterior = model.posterior(x_scaled)
+                        # acquisition_function = ExpectedImprovement(
+                        #     model=model, best_f=posterior.mean.max().item()
+                        # )                      
+                        acquisition_function = ExpectedImprovement(
+                            model=model, 
+                            best_f=get_best_f(model, x_scaled).item(),
+                        )
+                    elif self.acquisition == 'aei':
+                        acquisition_function = AugmentedExpectedImprovement(
+                            model=model, 
+                            best_f=get_best_f(model, x_scaled, effective=True).item(), 
+                            tau=self.aei_factor,
+                        )
                 else:
                     acquisition_function = ExpectedImprovement(
                         model=model, best_f=(-fx_scaled).max().item()
@@ -905,6 +921,27 @@ class incPP(Bounce):
             xs_up=xs_up,
             fxs=fxs,
         )
+
+from botorch.models.model import Model
+from torch import Tensor
+
+def get_best_f(model: Model, x:Tensor, alpha: float=1.0, effective: bool = False):
+    '''
+        model : Model
+        x : torch.Tensor
+        effective : bool
         
-        
+        If effective is True, get the effective best solution.
+            ref) Huang, Deng, et al. "Global optimization of stochastic black-box systems via sequential kriging meta-models." Journal of global optimization 34 (2006): 441-466.
+    '''
+    model.eval()
+    model.likelihood.eval()
+    posterior = model.posterior(x)
+    mean = posterior.mean
+    sigma = posterior.variance.sqrt()
+    sign = np.random.choice([-1, 1])
+    alpha *= sign
+    
+    return mean.max() if effective else (mean + sigma * alpha).max()
+    
 
