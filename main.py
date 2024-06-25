@@ -71,7 +71,7 @@ def main():
     )
     parser.add_argument(
         "--wo_bopp",
-        action='store_false',
+        action='store_true',
         help='[BO-PP] If you want to run without a BO-PP module, trigger this'
     )
     parser.add_argument(
@@ -90,13 +90,13 @@ def main():
     parser.add_argument(
         "--bin",
         type=int,
-        default=2,
+        default=1,
         help='[Bounce] adjusting the number of new bins on splitting'
     )
     parser.add_argument(
         "--n_init",
         type=int,
-        default=10,
+        default=5,
         help='[Bounce] adjusting init sampling sizes'
     )
     parser.add_argument(
@@ -138,6 +138,18 @@ def main():
         type=float,
         default= 1,
         help='[Noise] Define std threshold to adjust a degree of noise'
+    )
+    parser.add_argument(
+        "--acquisition",
+        type=str,
+        default='ei',
+        choices=['ei', 'aei'],
+        help='[Noise] Define which acquisition function is used.'
+    )
+    parser.add_argument(
+        "--aei_factor",
+        type=float,
+        help='[AEI] Controll aei factor.'
     )
     parser.add_argument(
         "--debugging",
@@ -240,6 +252,8 @@ def main():
                 max_eval_until_input=args.max_eval_until_input,
                 noise_mode=args.noise_mode,
                 noise_threshold=args.noise_threshold,
+                acquisition=args.acquisition,
+                aei_factor=args.aei_factor,
             #   gp_mode=args.gp
                 )
         case "smac":
