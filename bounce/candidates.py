@@ -17,6 +17,7 @@ from bounce.trust_region import TrustRegion
 from bounce.util.benchmark import ParameterType
 
 from envs.params import NOISE_PARAM as n
+from incpp.acquisition import get_best_x
 
 def create_candidates_discrete(
     x_scaled: torch.Tensor,
@@ -31,6 +32,7 @@ def create_candidates_discrete(
     add_spray_points: bool = True,
     sampler: Optional[SobolQMCNormalSampler] = None,
     noise_mode: bool = False,
+    effective: bool = True,
 ) -> tuple[torch.Tensor, torch.Tensor, dict]:
     """
     Create candidate points for the next batch.
@@ -67,15 +69,29 @@ def create_candidates_discrete(
     # x_centers = torch.clone(x_scaled[fx_scaled.argmin(), :]).detach()
     if noise_mode not in [n['NOISE_FREE_REPEATED_BENCHMARKING'], n['NOISE_FREE_REPEATED_EXPERIMENTS']]:
     # if noise_mode == n['NOISY_OBSERVATIONS'] or noise_mode == n['ADAPTIVE_NOISE']:
-        model.eval()
-        model.likelihood.eval()
-        posterior = model.posterior(x_scaled)
-        # GP has been trained to predict negative values of fx.. thus, a maximum from posterior means gets the best results..
-        # Not argmin, but argmax..!
-        x_centers = torch.clone(x_scaled[posterior.mean.argmax(), :]).detach()
-        del posterior
+        x_centers = get_best_x(
+            model=model,
+            xs=x_scaled,
+            fxs=fx_scaled,
+            noisy=True,
+            effective=effective,
+            )
+        # model.eval()
+        # model.likelihood.eval()
+        # posterior = model.posterior(x_scaled)
+        # # GP has been trained to predict negative values of fx.. thus, a maximum from posterior means gets the best results..
+        # # Not argmin, but argmax..!
+        # x_centers = torch.clone(x_scaled[posterior.mean.argmax(), :]).detach()
+        # del posterior
     else:
-        x_centers = torch.clone(x_scaled[fx_scaled.argmin(), :]).detach()
+        x_centers = get_best_x(
+            model=model,
+            xs=x_scaled,
+            fxs=fx_scaled,
+            noisy=False,
+            effective=effective,
+            )
+        # x_centers = torch.clone(x_scaled[fx_scaled.argmin(), :]).detach()
         
     # x_center should be in [0, 1]^d at this point
     x_centers = torch.repeat_interleave(x_centers.unsqueeze(0), batch_size, dim=0)
@@ -97,17 +113,17 @@ def create_candidates_discrete(
 
     for batch_index in range(batch_size):
         _acquisition_function = acquisition_function
-        if acquisition_function is None:
-            assert (
-                sampler is not None
-            ), "Either acquisition_function or sampler must be provided"
-            x_pending = x_batch_return[:batch_index, :] if batch_index > 0 else None
-            _acquisition_function = qExpectedImprovement(
-                model=model,
-                best_f=(-fx_scaled).max().item(),
-                sampler=sampler,
-                X_pending=x_pending,
-            )
+        # if acquisition_function is None:
+        #     assert (
+        #         sampler is not None
+        #     ), "Either acquisition_function or sampler must be provided"
+        #     x_pending = x_batch_return[:batch_index, :] if batch_index > 0 else None
+        #     _acquisition_function = qExpectedImprovement(
+        #         model=model,
+        #         best_f=(-fx_scaled).max().item(),
+        #         sampler=sampler,
+        #         X_pending=x_pending,
+        #     )
 
         def ts(x: torch.Tensor, batch_index: int):
             """
@@ -214,17 +230,33 @@ def create_candidates_discrete(
 
     # if noise_mode == n['NOISY_OBSERVATIONS'] or noise_mode == n['ADAPTIVE_NOISE']:
     if noise_mode not in [n['NOISE_FREE_REPEATED_BENCHMARKING'], n['NOISE_FREE_REPEATED_EXPERIMENTS']]:
-        model.eval()
-        model.likelihood.eval()
-        posterior = model.posterior(x_scaled)
+        # model.eval()
+        # model.likelihood.eval()
+        # posterior = model.posterior(x_scaled)
+        center = get_best_x(
+            model=model,
+            xs=x_scaled,
+            fxs=fx_scaled,
+            noisy=True,
+            effective=effective,
+            )
+        
         tr_state = {
-            "center": x_scaled[posterior.mean.argmax(), :].detach().cpu().numpy().reshape(1, -1),
+            # "center": x_scaled[posterior.mean.argmax(), :].detach().cpu().numpy().reshape(1, -1),
+            "center": center.cpu().numpy().reshape(1, -1),
             "length": np.array([trust_region.length_discrete]),
         }
-        del posterior                
     else:
+        center = get_best_x(
+            model=model,
+            xs=x_scaled,
+            fxs=fx_scaled,
+            noisy=False,
+            effective=effective,
+            )        
         tr_state = {
-            "center": x_scaled[fx_scaled.argmin(), :].detach().cpu().numpy().reshape(1, -1),
+            # "center": x_scaled[fx_scaled.argmin(), :].detach().cpu().numpy().reshape(1, -1),
+            "center": center.cpu().numpy().reshape(1, -1),
             "length": np.array([trust_region.length_discrete]),
         }
 
@@ -249,6 +281,7 @@ def create_candidates_continuous(
     x_bests: Optional[list[torch.Tensor]] = None,
     sampler: Optional[SobolQMCNormalSampler] = None,
     noise_mode: bool = False,
+    effective: bool = True,
 ) -> tuple[torch.Tensor, torch.Tensor, dict]:
     """
     Create candidate points for the next batch.
@@ -281,16 +314,23 @@ def create_candidates_continuous(
     # Find the center of the trust region
     # x_centers = torch.clone(x_scaled[fx_scaled.argmin(), :]).detach()
     # if noise_mode == n['NOISY_OBSERVATIONS'] or noise_mode == n['ADAPTIVE_NOISE']:
+
     if noise_mode not in [n['NOISE_FREE_REPEATED_BENCHMARKING'], n['NOISE_FREE_REPEATED_EXPERIMENTS']]:
-        model.eval()
-        model.likelihood.eval()
-        posterior = model.posterior(x_scaled)
-        # GP has been trained to predict negative values of fx.. thus, a maximum from posterior means gets the best results..
-        # Not argmin, but argmax..!        
-        x_centers = torch.clone(x_scaled[posterior.mean.argmax(), :]).detach()
-        del posterior        
+        x_centers = get_best_x(
+            model=model,
+            xs=x_scaled,
+            fxs=fx_scaled,
+            noisy=True,
+            effective=effective,
+            )
     else:
-        x_centers = torch.clone(x_scaled[fx_scaled.argmin(), :]).detach()
+        x_centers = get_best_x(
+            model=model,
+            xs=x_scaled,
+            fxs=fx_scaled,
+            noisy=False,
+            effective=effective,
+            )
 
     # repeat x_centers batch_size many times
     x_centers = torch.repeat_interleave(x_centers.unsqueeze(0), batch_size, dim=0)
@@ -335,36 +375,36 @@ def create_candidates_continuous(
         tr_ub[indices_to_optimize] = _tr_ub
 
         _acquisition_function = acquisition_function
-        if acquisition_function is None:
-            assert (
-                sampler is not None
-            ), "Either acquisition_function or sampler must be provided"
-            x_pending = x_cand_downs[:batch_index, :] if batch_index > 0 else None
+        # if acquisition_function is None:
+        #     assert (
+        #         sampler is not None
+        #     ), "Either acquisition_function or sampler must be provided"
+        #     x_pending = x_cand_downs[:batch_index, :] if batch_index > 0 else None
             
-            if noise_mode not in [n['NOISE_FREE_REPEATED_BENCHMARKING'], n['NOISE_FREE_REPEATED_EXPERIMENTS']]:
-                model.eval()
-                model.likelihood.eval()
-                posterior = model.posterior(x_scaled)
-                _acquisition_function = qExpectedImprovement(
-                    model=model,
-                    best_f=posterior.mean.max().item(),
-                    sampler=sampler,
-                    X_pending=x_pending,
-                )
-                del posterior
-            else:
-                _acquisition_function = qExpectedImprovement(
-                    model=model,
-                    best_f=(-fx_scaled).max().item(),
-                    sampler=sampler,
-                    X_pending=x_pending,
-                )
-            # _acquisition_function = qExpectedImprovement(
-            #     model=model,
-            #     best_f=(-fx_scaled).max().item(),
-            #     sampler=sampler,
-            #     X_pending=x_pending,
-            # )
+        #     if noise_mode not in [n['NOISE_FREE_REPEATED_BENCHMARKING'], n['NOISE_FREE_REPEATED_EXPERIMENTS']]:
+        #         model.eval()
+        #         model.likelihood.eval()
+        #         posterior = model.posterior(x_scaled)
+        #         _acquisition_function = qExpectedImprovement(
+        #             model=model,
+        #             best_f=posterior.mean.max().item(),
+        #             sampler=sampler,
+        #             X_pending=x_pending,
+        #         )
+        #         del posterior
+        #     else:
+        #         _acquisition_function = qExpectedImprovement(
+        #             model=model,
+        #             best_f=(-fx_scaled).max().item(),
+        #             sampler=sampler,
+        #             X_pending=x_pending,
+        #         )
+        #     # _acquisition_function = qExpectedImprovement(
+        #     #     model=model,
+        #     #     best_f=(-fx_scaled).max().item(),
+        #     #     sampler=sampler,
+        #     #     X_pending=x_pending,
+        #     # )
 
         # EI-based acquisition function
         x_cand_down = optimize_acqf(
@@ -384,19 +424,31 @@ def create_candidates_continuous(
 
     # if noise_mode == n['NOISY_OBSERVATIONS'] or noise_mode == n['ADAPTIVE_NOISE']:
     if noise_mode not in [n['NOISE_FREE_REPEATED_BENCHMARKING'], n['NOISE_FREE_REPEATED_EXPERIMENTS']]:
-        model.eval()
-        model.likelihood.eval()
-        posterior = model.posterior(x_scaled)
+        center = get_best_x(
+            model=model,
+            xs=x_scaled,
+            fxs=fx_scaled,
+            noisy=True,
+            effective=effective,
+            )
         tr_state = {
-            "center": x_scaled[posterior.mean.argmax(), :].detach().cpu().numpy().reshape(1, -1),
+            # "center": x_scaled[posterior.mean.argmax(), :].detach().cpu().numpy().reshape(1, -1),
+            "center": center.cpu().numpy().reshape(1, -1),
             "length": np.array([trust_region.length_continuous]),
             "lb": tr_lb.detach().cpu().numpy(),
             "ub": tr_ub.detach().cpu().numpy(),
-        }
-        del posterior        
+        }        
     else:
+        center = get_best_x(
+            model=model,
+            xs=x_scaled,
+            fxs=fx_scaled,
+            noisy=False,
+            effective=effective,
+            )  
         tr_state = {
-            "center": x_scaled[fx_scaled.argmin(), :].detach().cpu().numpy().reshape(1, -1),
+            # "center": x_scaled[fx_scaled.argmin(), :].detach().cpu().numpy().reshape(1, -1),
+            "center": center.cpu().numpy().reshape(1, -1),
             "length": np.array([trust_region.length_continuous]),
             "lb": tr_lb.detach().cpu().numpy(),
             "ub": tr_ub.detach().cpu().numpy(),
