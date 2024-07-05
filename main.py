@@ -125,13 +125,14 @@ def main():
     parser.add_argument(
         "--noise_mode",
         type=int,
-        choices=[1, 2, 3, 4, 5],
+        choices=[1, 2, 3, 4, 5, 6],
         help='[Noise] Choose noise mode, \
                 1: a noisy observation mode, \
                 2: a noise-free mode w repeated evaluating, \
                 3: a noise-free mode w repeated experiments, \
                 4: an adaptive noisy observation mode. \
-                5: a noisy observation mode using quantile 75%'
+                5: a noisy observation mode using quantile 75%. \
+                6: a noisy observation mode using mean'
     )
     parser.add_argument(
         "--noise_threshold",
@@ -145,11 +146,6 @@ def main():
         default='ei',
         choices=['ei', 'aei'],
         help='[Noise] Define which acquisition function is used.'
-    )
-    parser.add_argument(
-        "--aei_factor",
-        type=float,
-        help='[AEI] Controll aei factor.'
     )
     parser.add_argument(
         "--debugging",
@@ -253,7 +249,6 @@ def main():
                 noise_mode=args.noise_mode,
                 noise_threshold=args.noise_threshold,
                 acquisition=args.acquisition,
-                aei_factor=args.aei_factor,
             #   gp_mode=args.gp
                 )
         case "smac":
