@@ -34,10 +34,6 @@ def get_gp(
     lamda: Optional[float] = None,
     discrete_ard: bool = False,
     continuous_ard: bool = True,
-    neighbor_distance: float = 0.01,
-    pseudo_point_mode: float = True,
-    pseudo_point_ratio: float = 1.0,
-    # gp_mode: str = 'fixednoisegp'
 ) -> tuple[SingleTaskGP, Tensor, Tensor]:
     """
     Define the GP model.
@@ -113,99 +109,16 @@ def get_gp(
 
     train_x = x.detach().clone()
     train_fx = fx[:, None].detach().clone()
-    # train_fx_var = fx_var.detach().clone() if fx_var is not None else None
 
-    if pseudo_point_mode:
-        ###############PSEUDO-POINTS###############
-        ###############Developed by TuRBO##################################
-        # pseudo_point_x = torch.zeros(train_x.shape)
-        # pseudo_point_fx = torch.zeros(train_fx.shape)
-        
-        # choose_number = sample(range(0, len(train_x)), len(train_x) - 1)
-        
-        # for n in choose_number:
-        #     pseudo_point_x[n] = train_x[n]
-        #     pseudo_point_fx[n] = train_fx[n]
-        ##################################################################
-        
-        ################Developed by me###################################
-        _, indices = torch.sort(train_fx, dim=0)
-        n_pp = int(len(indices) * pseudo_point_ratio)
-        best_indices = indices[:n_pp]
-        
-        pseudo_point_x = train_x[best_indices].squeeze().clone()
-        pseudo_point_fx = train_fx[best_indices].squeeze(1).clone()
-        ##################################################################
-        
-        for x, fx in zip(pseudo_point_x, pseudo_point_fx):
-            for _ in range(len(x)):
-                x[_] = uniform(x[_] - neighbor_distance, x[_] + neighbor_distance)
-                
-        train_x_pp = torch.cat((train_x, pseudo_point_x))
-        train_fx_pp = torch.cat((train_fx, pseudo_point_fx))
-        
-        # Define the model
-        likelihood = GaussianLikelihood(
-            noise_prior=gpytorch.priors.GammaPrior(noise_prior_shape, noise_prior_rate)
+    likelihood = GaussianLikelihood(
+        noise_prior=gpytorch.priors.GammaPrior(noise_prior_shape, noise_prior_rate)
+    )
+    model = SingleTaskGP(
+            train_X=train_x,
+            train_Y=train_fx,
+            covar_module=covar_module,
+            likelihood=likelihood,
         )
-        
-        model = SingleTaskGP(
-                train_X=train_x_pp,
-                train_Y=train_fx_pp,
-                covar_module=covar_module,
-                likelihood=likelihood,
-            )
-        \
-        # if gp_mode == 'singletaskgp':
-        #     model = SingleTaskGP(
-        #         train_X=train_x_pp,
-        #         train_Y=train_fx_pp,
-        #         covar_module=covar_module,
-        #         likelihood=likelihood,
-        #     )
-        # elif gp_mode == 'fixednoisegp':
-        #     logging.info("🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳🍳")
-        #     pseudo_point_fx_var = torch.zeros(train_fx_var.shape)
-        #     for n in choose_number:
-        #         pseudo_point_fx_var[n] = train_fx_var[n]
-        #     train_fx_var_pp = torch.cat((train_fx_var, pseudo_point_fx_var))    
-                
-        #     model = FixedNoiseGP(
-        #         train_X=train_x_pp,
-        #         train_Y=train_fx_pp,
-        #         train_Yvar=train_fx_var_pp,
-        #         covar_module=covar_module,
-        #     )
-        # else:
-        #     assert False, "Failed to define gp_mode : singletaskgp or fixednoisegp"
-    ###########################################
-    else:
-        # Define the model
-        likelihood = GaussianLikelihood(
-            noise_prior=gpytorch.priors.GammaPrior(noise_prior_shape, noise_prior_rate)
-        )
-        model = SingleTaskGP(
-                train_X=train_x,
-                train_Y=train_fx,
-                covar_module=covar_module,
-                likelihood=likelihood,
-            )
-        # if gp_mode == 'singletaskgp':
-        #     model = SingleTaskGP(
-        #         train_X=train_x,
-        #         train_Y=train_fx,
-        #         covar_module=covar_module, 
-        #         likelihood=likelihood,
-        #     )
-        # elif gp_mode == 'fixednoisegp':
-        #     model = FixedNoiseGP(
-        #         train_X=train_x,
-        #         train_Y=train_fx,
-        #         train_Yvar=train_fx_var,
-        #         covar_module=covar_module,
-        #     )
-        # else:
-        #     assert False, "Failed to define gp_mode : singletaskgp or fixednoisegp"
         
     return model, train_x, train_fx
 
