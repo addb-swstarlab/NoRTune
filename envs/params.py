@@ -42,8 +42,7 @@ NOISE_PARAM = {
                 "NOISE_FREE_REPEATED_BENCHMARKING": 2,
                 "NOISE_FREE_REPEATED_EXPERIMENTS": 3,
                 "ADAPTIVE_NOISE": 4,
-                'NOISE_QUANTILE': 5,
-                'NOISE_MEAN': 6,
+                'NOISE_MEAN': 5,
             }
 
 TRUSTREGION_PARAM = {"length_init_discrete": 40} # 40
