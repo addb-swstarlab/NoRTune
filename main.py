@@ -59,34 +59,9 @@ def main():
     parser.add_argument(
         "--workload_size",
         type=str,
-        choices=["tiny", "small", "large"],
+        choices=["tiny", "small", "large", "huge", "gigantic"],
         default="large"
     )
-    # =======For evaluating modules developed currently=======    
-    parser.add_argument(
-        "--neighbor",
-        type=float,
-        default=0.03,
-        help='[BO-PP] adjusting a degree of distances from neighbors'
-    )
-    parser.add_argument(
-        "--wo_bopp",
-        action='store_true',
-        help='[BO-PP] If you want to run without a BO-PP module, trigger this'
-    )
-    parser.add_argument(
-        "--bopp_ratio",
-        type=float,
-        default=1.0,
-        help='[BO-PP] Adjusting using best sample ratio for a BO-PP'
-    )
-    # parser.add_argument(
-    #     "--gp",
-    #     type=str,
-    #     default='fixednoisegp',
-    #     choices=['fixednoisegp', 'singletaskgp'],
-    #     help='[Noise-GP] Choosing the kind of GP class whether inseting noise variances or not'
-    # )
     parser.add_argument(
         "--bin",
         type=int,
@@ -125,14 +100,13 @@ def main():
     parser.add_argument(
         "--noise_mode",
         type=int,
-        choices=[1, 2, 3, 4, 5, 6],
+        choices=[1, 2, 3, 4, 5],
         help='[Noise] Choose noise mode, \
                 1: a noisy observation mode, \
                 2: a noise-free mode w repeated evaluating, \
                 3: a noise-free mode w repeated experiments, \
                 4: an adaptive noisy observation mode. \
-                5: a noisy observation mode using quantile 75%. \
-                6: a noisy observation mode using mean'
+                5: a noisy observation mode using mean'
     )
     parser.add_argument(
         "--noise_threshold",
@@ -238,9 +212,6 @@ def main():
             benchmark = SparkTuning(env=env)
             tuner = incPP(
                 benchmark=benchmark, 
-                neighbor_distance=args.neighbor, 
-                pseudo_point=args.wo_bopp,
-                pseudo_point_ratio=args.bopp_ratio,
                 initial_target_dimensionality=args.target_dim,
                 bin=args.bin,
                 n_init=args.n_init,
