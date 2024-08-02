@@ -1,4 +1,4 @@
-import os
+import os, time
 import torch
 import logging
 import pandas as pd
@@ -30,18 +30,18 @@ class SparkEnv:
         self.alter = False if self.debugging else alter
         
         self.workload_size = workload_size
-        self.workloads_size = {
-            'aggregation': 'large', #'huge',
-            'join': 'huge',
-            'scan': 'huge',
-            'wordcount': 'large',
-            'terasort': 'large',  
-            'bayes': 'huge',
-            'kmeans': 'large',
-            'pagerank': 'large',
-            'svm': 'large',
-            'nweight': 'small',
-        }        
+        # self.workloads_size = {
+        #     'aggregation': 'large', #'huge',
+        #     'join': 'huge',
+        #     'scan': 'huge',
+        #     'wordcount': 'large',
+        #     'terasort': 'large',  
+        #     'bayes': 'huge',
+        #     'kmeans': 'large',
+        #     'pagerank': 'large',
+        #     'svm': 'large',
+        #     'nweight': 'small',
+        # }        
         
         self.start_dataproc()
         
@@ -52,7 +52,7 @@ class SparkEnv:
         
     def _alter_hibench_configuration(self, workload_size=None):
         if workload_size is None:
-            workload_size = self.workloads_size[self.workload]
+            workload_size = 'large' # self.workloads_size[self.workload]
             
         HIBENCH_CONF_PATH = os.path.join(p.DATA_FOLDER_PATH, f'{workload_size}_hibench.conf')
         logging.info("Altering hibench workload scale..")
@@ -68,7 +68,10 @@ class SparkEnv:
             
     def run_configuration(self, load:bool):
         if self.debugging:
+            start = time.time()
             logging.info(f"DEBUGGING MODE, skipping to benchmark the given configuration --> ### LOAD? {load}")
+            end = time.time()
+            logging.info(f"DEBUGGING MODE, [HiBench]⏱ data loading takes {end - start} s ⏱")
         else:
             self._run_configuration(load)
             
@@ -104,7 +107,10 @@ class SparkEnv:
         """
         
         if load:
+            start = time.time()
             os.system(f'timeout 1000 ssh {p.MASTER_ADDRESS} "bash --noprofile --norc -c scripts/prepare_wk/load_{self.workload}.sh"')
+            end = time.time()
+            logging.info(f"[HiBench] data loading (seconds) takes {end - start}")
         
         exit_code = os.system(f'timeout 1000 ssh {p.MASTER_ADDRESS} "bash --noprofile --norc -c scripts/run_wk/run_{self.workload}.sh"')
         # exit_code = os.system(f'ssh {p.MASTER_ADDRESS} "bash --noprofile --norc -c scripts/run_{self.workload}.sh"')
