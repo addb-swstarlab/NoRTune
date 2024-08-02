@@ -51,7 +51,7 @@ class incPP(Bounce):
         self.noise_threshold = noise_threshold
         self.acquisition = acquisition
         self.effective = True if self.acquisition == 'aei' else False
-        
+                
         results_dir = 'test_results' if self.benchmark.env.debugging else 'results'
         
         # self.gp_mode = gp_mode
@@ -289,6 +289,7 @@ class incPP(Bounce):
                 axus=axus,
                 x=x_scaled,
                 fx=-fx_scaled,
+                noise=self.effective,
             )
 
             use_scipy_lbfgs = self.use_scipy_lbfgs and (
