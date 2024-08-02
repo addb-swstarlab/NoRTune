@@ -53,7 +53,7 @@ def main():
     parser.add_argument(
         "--workload",
         type=str,
-        choices=["aggregation", "join", "scan", "wordcount", "terasort", "bayes", "kmeans", "pagerank", "svm", "nweight"],
+        choices=["aggregation", "join", "scan", "wordcount", "terasort", "bayes", "kmeans", "pagerank", "svm", "nweight", "lda", "linear"],
         default="join"
     )
     parser.add_argument(
@@ -247,7 +247,8 @@ def main():
             tuner = Baselines(
                 optimizer_method=args.optimizer_method,
                 embedding_method=args.embedding_method,
-                benchmark=benchmark
+                benchmark=benchmark,
+                acquisition_function=args.acquisition,
                 )
         case _:
             assert False, "The method is not defined.. Choose in [bounce, random]"
