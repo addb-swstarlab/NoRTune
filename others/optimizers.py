@@ -12,6 +12,7 @@ from envs.params import BOUNCE_PARAM as bp
 import envs.params as p
 from envs.utils import get_foldername
 from others.benchmarks import Benchmark
+from others.adapters.acquisition_function import AEI
 
 class Baselines:
     def __init__(
@@ -22,6 +23,7 @@ class Baselines:
         maximum_number_evaluations: int = bp["maximum_number_evaluations"],
         rand_percentage: float = 0.1,
         n_estimators: int = 100,
+        acquisition_function: str = 'ei',
     ):
         self.embedding_method = embedding_method
         self.optimizer_method = optimizer_method
@@ -29,6 +31,7 @@ class Baselines:
         self.rand_percentage = rand_percentage
         self.n_estimators = n_estimators
         self.input_space = self.benchmark.input_space
+        self.acquisition_function = acquisition_function
         
         self._init_observations()
         self._set_result_dir()
@@ -46,7 +49,7 @@ class Baselines:
         os.makedirs(self.results_dir, exist_ok=True)
         logging.info(f"Results are saved in .. {self.results_dir}")
         f = open(os.path.join(self.results_dir, 'workload.txt'), 'w')
-        f.writelines(f"{self.benchmark.workload} {self.benchmark.workloads_size[self.benchmark.workload]}")
+        f.writelines(f"{self.benchmark.workload} {self.benchmark.workload_size}")
         f.close()    
     
     # def _get_input_space(self):
@@ -96,7 +99,8 @@ class Baselines:
                     kernel=BlackBoxFacade.get_kernel(scenario=self.scenario),
                     normalize_y=True
                 ),
-                random_design=ProbabilityRandomDesign(self.rand_percentage)
+                random_design=ProbabilityRandomDesign(self.rand_percentage),
+                acquisition_function=AEI(xi=0.0) if self.acquisition_function == 'aei' else None
             )
         else:
             assert False, "Please define optimizer method to smac or bo."
