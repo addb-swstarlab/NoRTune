@@ -34,6 +34,7 @@ def get_gp(
     lamda: Optional[float] = None,
     discrete_ard: bool = False,
     continuous_ard: bool = True,
+    noise: bool = True, # If using AEI, it should be True
 ) -> tuple[SingleTaskGP, Tensor, Tensor]:
     """
     Define the GP model.
@@ -110,9 +111,15 @@ def get_gp(
     train_x = x.detach().clone()
     train_fx = fx[:, None].detach().clone()
 
-    likelihood = GaussianLikelihood(
-        noise_prior=gpytorch.priors.GammaPrior(noise_prior_shape, noise_prior_rate)
-    )
+    if noise:
+        logging.info('************Noisy GP************')
+        likelihood = GaussianLikelihood(
+            noise_prior=gpytorch.priors.GammaPrior(noise_prior_shape, noise_prior_rate)
+        )
+    else:
+        logging.info('************Noise-Free GP************')
+        likelihood = GaussianLikelihood()
+    
     model = SingleTaskGP(
             train_X=train_x,
             train_Y=train_fx,
