@@ -9,7 +9,6 @@
 *.csv
 envs/gcp_info.py
 */results/
-data/*
 /logs/
 *.ipynb
 test_dir/
