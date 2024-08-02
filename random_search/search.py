@@ -23,7 +23,7 @@ class RandomSearch: # Random Optimizer?
         os.makedirs(self.results_dir, exist_ok=True)
         logging.info(f"Results are saved in .. {self.results_dir}")
         f = open(os.path.join(self.results_dir, 'workload.txt'), 'w')
-        f.writelines(f"{self.benchmark.workload} {self.benchmark.workloads_size[self.benchmark.workload]}")
+        f.writelines(f"{self.benchmark.workload} {self.benchmark.workload_size}")
         f.close()
             
     def run(self):
