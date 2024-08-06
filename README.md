@@ -1,5 +1,5 @@
-# TMPTune
-This is a temporary reposiotry for Spark Tuning. The base of this code is [here](https://github.com/LeoIV/Bounce).
+# NoRTune
+This is a reposiotry for Spark Tuning. The base of this code is [here](https://github.com/LeoIV/Bounce).
 
 ## Installation
 
