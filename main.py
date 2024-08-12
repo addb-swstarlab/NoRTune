@@ -6,11 +6,11 @@ import os
 # import gin
 
 from bounce.bounce import Bounce
-from bounce.util.printing import BColors, BOUNCE_NAME, RANDOM_NAME, INCPP_NAME, HESBO_NAME
+from bounce.util.printing import BColors, BOUNCE_NAME, RANDOM_NAME, NSBO_NAME, HESBO_NAME
 from bounce.spark_benchmark import SparkTuning
 from random_search.search import RandomSearch
 from random_search.benchmarks import SparkBench
-from incpp.incpp import incPP
+from nsbo.nsbo import NSBO
 from others.optimizers import Baselines
 from others.benchmarks import Benchmark
 
@@ -40,7 +40,7 @@ def main():
         "--optimizer_method",
         type=str,
         default='bounce',
-        choices=['bounce', 'random', 'incpp', 'bo', 'smac'],
+        choices=['bounce', 'random', 'nsbo', 'bo', 'smac'],
         help='bounce, random, ...'
     )
     parser.add_argument(
@@ -149,8 +149,8 @@ def main():
         logging.info(BOUNCE_NAME)
     elif args.optimizer_method == 'random':
         logging.info(RANDOM_NAME)
-    elif args.optimizer_method == 'incpp':
-        logging.info(INCPP_NAME)
+    elif args.optimizer_method == 'nsbo':
+        logging.info(NSBO_NAME)
     else:
         logging.info("🟥🟧🟨🟩🟦🟪🟦🟩🟨🟧🟥")
         logging.info(args.model_name)
@@ -203,14 +203,14 @@ def main():
                 )
             tuner = RandomSearch(benchmark=benchmark,
                                  maximum_number_evaluations=args.max_eval)
-        case "incpp":
+        case "nsbo":
             env = SparkEnv(
                 workload=args.workload,
                 workload_size=args.workload_size,
                 debugging=args.debugging
                 )
             benchmark = SparkTuning(env=env)
-            tuner = incPP(
+            tuner = NSBO(
                 benchmark=benchmark, 
                 initial_target_dimensionality=args.target_dim,
                 bin=args.bin,
