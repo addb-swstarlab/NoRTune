@@ -36,14 +36,15 @@ RANDOM_NAME = """
   [ Random Search mode ]
 """
 
-INCPP_NAME = """
-\t     __            ____  ____
-\t    /_/___  _____ / __ \\/ __ \\
-\t   / / __ \\/ ___// /_/ / /_/ /
-\t  / / / / / /__ / ____/ ____/
-\t /_/_/ /_/\\___//_/   /_/
+NSBO_NAME = """
+\t    _   _______ ____  ____
+\t   / | / / ___// __ )/ __ \\
+\t  /  |/ /\__ \/ __  / / / /
+\t / /|  /___/ / /_/ / /_/ /
+\t/_/ |_/_____/_____/\____/
 
-   [ incPP: Incresaingly high-dimensional combinatorial and continuous embedding with Pseudo Points ]
+
+   [ NSBO: Nested Subspace-based Bayesian Optimization ]
 """
 
 HESBO_NAME = """
