@@ -101,6 +101,7 @@ def main():
         "--noise_mode",
         type=int,
         choices=[1, 2, 3, 4, 5],
+        default=5,
         help='[Noise] Choose noise mode, \
                 1: a noisy observation mode, \
                 2: a noise-free mode w repeated evaluating, \
