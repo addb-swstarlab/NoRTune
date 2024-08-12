@@ -17,7 +17,7 @@ from bounce.trust_region import TrustRegion
 from bounce.util.benchmark import ParameterType
 
 from envs.params import NOISE_PARAM as n
-from incpp.acquisition import get_best_x
+from nsbo.acquisition import get_best_x
 
 def create_candidates_discrete(
     x_scaled: torch.Tensor,
