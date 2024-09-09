@@ -30,6 +30,8 @@ class SparkEnv:
         self.alter = False if self.debugging else alter
         
         self.workload_size = workload_size
+        
+        self.timeout = 1000 if workload_size in ["tiny", "small", "large"] else 2000
         # self.workloads_size = {
         #     'aggregation': 'large', #'huge',
         #     'join': 'huge',
@@ -108,11 +110,13 @@ class SparkEnv:
         
         if load:
             start = time.time()
-            os.system(f'timeout 1000 ssh {p.MASTER_ADDRESS} "bash --noprofile --norc -c scripts/prepare_wk/load_{self.workload}.sh"')
+            os.system(f'timeout {self.timeout} ssh {p.MASTER_ADDRESS} "bash --noprofile --norc -c scripts/prepare_wk/load_{self.workload}.sh"')
+            # os.system(f'timeout 1000 ssh {p.MASTER_ADDRESS} "bash --noprofile --norc -c scripts/prepare_wk/load_{self.workload}.sh"')
             end = time.time()
             logging.info(f"[HiBench] data loading (seconds) takes {end - start}")
         
-        exit_code = os.system(f'timeout 1000 ssh {p.MASTER_ADDRESS} "bash --noprofile --norc -c scripts/run_wk/run_{self.workload}.sh"')
+        # exit_code = os.system(f'timeout 1000 ssh {p.MASTER_ADDRESS} "bash --noprofile --norc -c scripts/run_wk/run_{self.workload}.sh"')
+        exit_code = os.system(f'timeout {self.timeout} ssh {p.MASTER_ADDRESS} "bash --noprofile --norc -c scripts/run_wk/run_{self.workload}.sh"')
         # exit_code = os.system(f'ssh {p.MASTER_ADDRESS} "bash --noprofile --norc -c scripts/run_{self.workload}.sh"')
         # exit_code = os.system(f'ssh {p.MASTER_ADDRESS} "bash --noprofile --norc -c scripts/run_bayes.sh"')
         if exit_code > 0:
