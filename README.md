@@ -14,7 +14,7 @@ To install the dependencies, run
 
 ```bash
 poetry install
-pip install configspace
+pip install configspace==0.6.1
 ```
 
 ## Dependencies
