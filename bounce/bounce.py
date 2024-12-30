@@ -726,7 +726,7 @@ class Bounce:
                     delimiter=",",
                 )
         
-        self.benchmark.env.calculate_improvement_from_default(best_fx=best_fx)
+        # self.benchmark.env.calculate_improvement_from_default(best_fx=best_fx)
 
     @property
     def _forecasted_tr_dim(self) -> int:
