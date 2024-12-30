@@ -103,10 +103,16 @@ class SparkTuning(Benchmark):
         self.env.apply_configuration()
         self.env.run_configuration(load)
     
+    def apply_configuration(self):
+        self.env.apply_configuration()
+        
+    def run_configuration(self, load:bool):
+        self.env.run_configuration(load)    
+    
     def get_results(self) -> float:
         return self.env.get_results()
 
-    def __call__(self, x: torch.Tensor, load:bool=True) -> torch.Tensor:
+    def __call__(self, x: torch.Tensor, repeat:bool=False, load:bool=True) -> torch.Tensor:
         """
         Minimizing results
         Args:
@@ -116,6 +122,11 @@ class SparkTuning(Benchmark):
             torch.Tensor: _description_
             
         """
+        if repeat == BENCHMARKING_REPETITION:
+            repeat = True
+        else:
+            repeat = False        
+        
         res = []
         cnt = 0
         
@@ -125,14 +136,22 @@ class SparkTuning(Benchmark):
             x_ = x_.squeeze()
         
             self.save_configuration_file(x_)           
-            self.apply_and_run_configuration(load)
+            if repeat:
+                self.apply_configuration()
+                for _ in range(BENCHMARKING_REPETITION):
+                    self.run_configuration(load)
+                    res_ = self.get_results()
+                    res.append(res_)
+                    load = False
+                    cnt += 1
+                    logging.info(f"👌👌 [{cnt}/{len(x)}] Results:{res_:.3f} !!!!!!!!!!!!!!!")
+            else:                    
+                self.apply_and_run_configuration(load)
+                res_ = self.get_results()
+                res.append(res_) # Higher tps is better, so add the minus symbol.
+                cnt += 1
+                logging.info(f"👌👌 [{cnt}/{len(x)}] Results:{res_:.3f} !!!!!!!!!!!!!!!")
             
-            res_ = self.get_results()
-            res.append(res_)
-            
-            cnt += 1
-            logging.info(f"👌👌 [{cnt}/{len(x)}] Results:{res_:.3f} !!!!!!!!!!!!!!!")
-        
         # if len(x) > 1:
         if len(x) == BENCHMARKING_REPETITION:
             logging.info(f"👌 Results:{res}   MEAN: {mean(res)}")
