@@ -1,9 +1,13 @@
 import os
 from envs.gcp_info import GCP_SPARK_MASTER_ADDRESS, GCP_DATAPROC_STOP_COMMAND, GCP_DATAPROC_START_COMMAND
+from envs.server_info import DB_SERVER_ADDRESS, DB_SERVER_PASSWD, DB_SERVER_CONF_DIR, DB_SERVER_POST_DIR
 
 HOME_PATH = os.path.expanduser('~')
 PROJECT_NAME = os.path.split(os.getcwd())[-1]
 
+CONF_PATH = os.path.join(HOME_PATH, PROJECT_NAME, 'data/tuned.conf')
+
+# Spark ---------------------------------------
 SPARK_CONF_INFO_CSV_PATH = os.path.join(HOME_PATH, PROJECT_NAME, 'data/Spark_3.1_45_parameters.csv')
 SPARK_CONF_PATH = os.path.join(HOME_PATH, PROJECT_NAME, 'data/add-spark.conf')
 SPARK_DEFAULT_CONF_PATH = os.path.join(HOME_PATH, PROJECT_NAME, 'data/def-spark.conf')
@@ -13,8 +17,18 @@ DATA_FOLDER_PATH = os.path.join(HOME_PATH, PROJECT_NAME, 'data')
 MASTER_ADDRESS = GCP_SPARK_MASTER_ADDRESS
 MASTER_CONF_PATH = os.path.join(HOME_PATH, 'HiBench/conf')
 # MASTER_BENCH_BASH = os.path.join(HOME_PATH, 'scripts/run_terasort.sh')
-
 HIBENCH_REPORT_PATH = os.path.join(HOME_PATH, PROJECT_NAME, 'data/hibench.report')
+# ---------------------------------------------
+
+# PostgreSQL ----------------------------------
+POSTGRES_CONF_INFO_CSV_PATH = os.path.join(HOME_PATH, PROJECT_NAME, 'data/PostgreSQL_13_112_parameters.csv')
+POSTGRES_CONF_PATH = os.path.join(HOME_PATH, PROJECT_NAME, 'data/add-postgres.conf')
+
+POSTGRES_SERVER_ADDRESS = DB_SERVER_ADDRESS
+POSTGRES_SERVER_PASSWSD = DB_SERVER_PASSWD
+POSTGRES_SERVER_CONF_PATH = DB_SERVER_CONF_DIR
+POSTGRES_SERVER_POSTGRES_PATH = DB_SERVER_POST_DIR
+# ---------------------------------------------
 
 # INCUMBENTS_RESULTS_PATH = os.path.join(HOME_PATH, PROJECT_NAME, 'results')
 
