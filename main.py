@@ -97,18 +97,18 @@ def main():
     #     action='store_true',
     #     help='[Noise] If you want to run benchmarking in a noise-free experiment, trigger this'
     # )
-    parser.add_argument(
-        "--noise_mode",
-        type=int,
-        choices=[1, 2, 3, 4, 5],
-        default=5,
-        help='[Noise] Choose noise mode, \
-                1: a noisy observation mode, \
-                2: a noise-free mode w repeated evaluating, \
-                3: a noise-free mode w repeated experiments, \
-                4: an adaptive noisy observation mode. \
-                5: a noisy observation mode using mean'
-    )
+    # parser.add_argument(
+    #     "--noise_mode",
+    #     type=int,
+    #     choices=[1, 2, 3, 4, 5],
+    #     default=5,
+    #     help='[Noise] Choose noise mode, \
+    #             1: a noisy observation mode, \
+    #             2: a noise-free mode w repeated evaluating, \
+    #             3: a noise-free mode w repeated experiments, \
+    #             4: an adaptive noisy observation mode. \
+    #             5: a noisy observation mode using mean'
+    # )
     parser.add_argument(
         "--noise_threshold",
         type=float,
@@ -218,7 +218,7 @@ def main():
                 n_init=args.n_init,
                 max_eval=args.max_eval,
                 max_eval_until_input=args.max_eval_until_input,
-                noise_mode=args.noise_mode,
+                # noise_mode=args.noise_mode,
                 noise_threshold=args.noise_threshold,
                 acquisition=args.acquisition,
             #   gp_mode=args.gp
