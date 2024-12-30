@@ -30,7 +30,7 @@ from bounce.util.data_handling import (
 
 from nsbo.gaussian_process import fit_mll, get_gp
 from nsbo.acquisition import AugmentedExpectedImprovement, get_best_fx, get_best_x
-from envs.params import BENCHMARKING_REPETITION, RANDOM_SEED
+from envs.params import BENCHMARKING_REPETITION, RANDOM_SEED, CONF_PATH
 from envs.params import NOISE_PARAM as n
 
 class NSBO(Bounce):
@@ -41,16 +41,18 @@ class NSBO(Bounce):
                  initial_target_dimensionality: int = 5,
                  max_eval: int = 50,
                  max_eval_until_input: int = 45,
-                 noise_mode: int = 1,
+                #  noise_mode: int = 1,
                  noise_threshold: float = 1,
                  acquisition: str = 'ei',
                  ):
     
         self.benchmark = benchmark
-        self.noise_mode = noise_mode
+        # self.noise_mode = noise_mode
         self.noise_threshold = noise_threshold
         self.acquisition = acquisition
         self.effective = True if self.acquisition == 'aei' else False
+        # self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.device = torch.device("cpu")
                 
         results_dir = 'test_results' if self.benchmark.env.debugging else 'results'
         
@@ -74,9 +76,9 @@ class NSBO(Bounce):
         f.writelines(f"{self.benchmark.env.workload} {self.benchmark.env.workload_size}")
         f.close()
         
-        self.fx_repeated = torch.empty(0, BENCHMARKING_REPETITION, dtype=self.dtype)
+        self.fx_repeated = torch.empty(0, BENCHMARKING_REPETITION, dtype=self.dtype, device=self.device)
         self.x_repeated = torch.empty(
-            0, self.benchmark.representation_dim, dtype=self.dtype
+            0, self.benchmark.representation_dim, dtype=self.dtype, device=self.device
         )
 
     def sample_init(self):
@@ -98,7 +100,7 @@ class NSBO(Bounce):
                     self.random_embedding.bins_and_indices_of_type(parameter_type)[i][1]
                     for i in range(len(bins_of_type))
                 ]
-            )
+            ).to(self.device)
             match parameter_type:
                 case ParameterType.BINARY:
                     _x_init = sample_binary(
@@ -169,72 +171,22 @@ class NSBO(Bounce):
         )
         
         fx_inits = None
-        unique_x_init = None        
-        if self.noise_mode == n['NOISY_OBSERVATIONS']: # self.noise_mode = 1
-            fx_init = torch.Tensor() # tensor([n, ])
-            
-            for _ in range(x_init_up.size(0)):
-                _fx = torch.concat([
-                    self.benchmark(x_init_up[r].unsqueeze(0), load=False if r > 0 else True).unsqueeze(1) 
-                    for r in range(BENCHMARKING_REPETITION)], 
-                                   dim=1)
-                fx_init = torch.concat([fx_init, _fx.squeeze()])
-            x_init = torch.concat([r.repeat(BENCHMARKING_REPETITION, 1) for r in x_init])
-            x_init_up = torch.concat([r.repeat(BENCHMARKING_REPETITION, 1) for r in x_init_up])
+        unique_x_init = None
         
-        elif self.noise_mode == n['NOISE_FREE_REPEATED_BENCHMARKING'] or self.noise_mode == n['NOISE_MEAN']: # self.noise_mode = 2
-            '''
-                fx_inits = tensor([[y1_1, y1_2, y1_3], [y2_1, y2_2, y2_3], ...])
-                fx_init = tensor([y1, y2, y3, y4, ...])
-            '''
-            fx_inits = torch.Tensor()
+        '''
+            fx_inits = tensor([[y1_1, y1_2, y1_3], [y2_1, y2_2, y2_3], ...])
+            fx_init = tensor([y1, y2, y3, y4, ...])
+        '''
+        fx_inits = torch.Tensor()
+        
+        logging.info("🎁#🎁#🎁#🎁 Start Sampling 🎁#🎁#🎁#🎁")
+        for _ in range(x_init_up.size(0)): # x_init_up: [n_init, num_params]
+            logging.info(f"[Sampling Iteration: {_}]")
+            _fx = self.benchmark(x_init_up[_].unsqueeze(0), repeat=BENCHMARKING_REPETITION)
             
-            for _ in range(x_init_up.size(0)):
-                _fx = torch.concat([
-                    self.benchmark(x_init_up[r].unsqueeze(0), load=False if r > 0 else True).unsqueeze(1) 
-                    for r in range(BENCHMARKING_REPETITION)], 
-                                   dim=1)
-                fx_inits = torch.concat([fx_inits, _fx])            
-            fx_init = fx_inits.mean(1)
-        elif self.noise_mode == n['ADAPTIVE_NOISE']:
-            new_x_init_up = torch.Tensor() # tensor([n, high_dim])
-            new_x_init = torch.Tensor() # tensor([n, low_dim])
-            fx_inits = torch.Tensor() # tensor([n, repetition_times])
-            fx_init = torch.Tensor() # tensor([n, ])
-            unique_x_init = x_init_up.clone()
-            
-            for _ in range(x_init_up.size(0)):
-                _fxs = torch.concat([
-                    self.benchmark(x_init_up[r].unsqueeze(0), load=False if r > 0 else True).unsqueeze(1) 
-                    for r in range(BENCHMARKING_REPETITION)], 
-                                   dim=1)
-                fx_inits = torch.concat([fx_inits, _fxs])
-                
-                _std = torch.std(_fxs, dim=1)
-                
-                if _std > self.noise_threshold:
-                    logging.info(f"[{_}/{self.number_initial_points}] {_std.item()} > {self.noise_threshold} --> 🔼 HIGH NOISE")
-                    
-                    fx_init = torch.concat([fx_init, _fxs.squeeze()])
-                    new_x_init_up = torch.concat([new_x_init_up, x_init_up[_].repeat(BENCHMARKING_REPETITION, 1)])
-                    new_x_init = torch.concat([new_x_init, x_init[_].repeat(BENCHMARKING_REPETITION, 1)])
-                    logging.info(f"fx_init : {fx_init.shape}")
-                    logging.info(f"new_x_init_up : {new_x_init_up.shape}")
-                    logging.info(f"new_x_init : {new_x_init.shape}")
-                else:
-                    logging.info(f"[{_}/{self.number_initial_points}] {_std.item()} <= {self.noise_threshold} --> 🔽 LOW NOISE")
-                    fx_init = torch.concat([fx_init, _fxs.mean(1)])
-                    new_x_init_up = torch.concat([new_x_init_up, x_init_up[_].repeat(1, 1)])
-                    new_x_init = torch.concat([new_x_init, x_init[_].repeat(1, 1)])
-                    logging.info(f"fx_init : {fx_init.shape}")
-                    logging.info(f"new_x_init_up : {new_x_init_up.shape}")
-                    logging.info(f"new_x_init : {new_x_init.shape}")
-                logging.info(f"Data saved to.. \nnew_x_init: {new_x_init.size()} | new_x_init_up: {new_x_init_up.size()} | fx_init: {fx_init.size()}")
-
-            x_init_up = new_x_init_up
-            x_init = new_x_init
-        else:
-            fx_init = self.benchmark(x_init_up)
+            fx_inits = torch.concat([fx_inits, _fx])
+        
+        fx_init = fx_inits.mean(1)
         
         self._add_data_to_tr_observations(
             xs_down=x_init, # [n, target_dim] target configs converted from original configs
@@ -291,7 +243,8 @@ class NSBO(Bounce):
                 fx=-fx_scaled,
                 noise=self.effective,
             )
-
+            model = model.to(self.device)
+            
             use_scipy_lbfgs = self.use_scipy_lbfgs and (
                 self.max_lbfgs_iters is None or len(train_x) <= self.max_lbfgs_iters
             )
@@ -315,34 +268,15 @@ class NSBO(Bounce):
                 # acquisition_function = ExpectedImprovement(
                 #     model=model, best_f=(-fx_scaled).max().item()
                 # )
-                if self.noise_mode not in [n['NOISE_FREE_REPEATED_BENCHMARKING'], n['NOISE_FREE_REPEATED_EXPERIMENTS']]:
-                # if self.noise_mode == n['NOISY_OBSERVATIONS'] or self.noise_mode == n['ADAPTIVE_NOISE']:
-                    if self.acquisition == 'ei':
-                        # model.eval()
-                        # model.likelihood.eval()
-                        # posterior = model.posterior(x_scaled)
-                        # acquisition_function = ExpectedImprovement(
-                        #     model=model, best_f=posterior.mean.max().item()
-                        # )                      
-                        acquisition_function = ExpectedImprovement(
-                            model=model, 
-                            best_f=get_best_fx(model, x_scaled).item(),
-                        )
-                    elif self.acquisition == 'aei':
-                        acquisition_function = AugmentedExpectedImprovement(
-                            model=model, 
-                            best_f=get_best_fx(model, x_scaled, effective=True).item(),
-                        )
-                else:
-                    if self.acquisition == 'ei':
-                        acquisition_function = ExpectedImprovement(
-                            model=model, best_f=(-fx_scaled).max().item()
-                        )
-                    elif self.acquisition == 'aei':
-                        acquisition_function = AugmentedExpectedImprovement(
-                            model=model, 
-                            best_f=get_best_fx(model, x_scaled, effective=True).item(),
-                        )
+                if self.acquisition == 'ei':
+                    acquisition_function = ExpectedImprovement(
+                        model=model, best_f=(-fx_scaled).max().item()
+                    )
+                elif self.acquisition == 'aei':
+                    acquisition_function = AugmentedExpectedImprovement(
+                        model=model, 
+                        best_f=get_best_fx(model, x_scaled, effective=True).item(),
+                    )
 
             continuous_type = axus.bins_and_indices_of_type(ParameterType.CONTINUOUS) + \
                                 axus.bins_and_indices_of_type(ParameterType.NUMERICAL) 
@@ -365,27 +299,14 @@ class NSBO(Bounce):
                     effective=self.effective,
                 )
                 x_best = x_best.reshape(-1, axus.target_dim)
-                # true_center = x[fx.argmin()]
-                if self.noise_mode not in [n['NOISE_FREE_REPEATED_BENCHMARKING'], n['NOISE_FREE_REPEATED_EXPERIMENTS']]:
-                    true_center = get_best_x(
-                        model=model,
-                        xs=x_scaled,
-                        fxs=fx_scaled,
-                        noisy=True,
-                        effective=self.effective,
-                        )
-                    # model.eval()
-                    # model.likelihood.eval()
-                    # true_center = x[model.posterior(x_scaled).mean.argmax()]                    
-                else:
-                    true_center = get_best_x(
-                        model=model,
-                        xs=x_scaled,
-                        fxs=fx_scaled,
-                        noisy=False,
-                        effective=self.effective,
-                        )
-                    # true_center = x[fx.argmin()]
+                
+                true_center = get_best_x(
+                    model=model,
+                    xs=x_scaled,
+                    fxs=fx_scaled,
+                    noisy=True,
+                    effective=self.effective,
+                    )
                     
                 x_best[:, continuous_indices] = true_center[continuous_indices].to(
                     device=x_best.device
@@ -455,257 +376,44 @@ class NSBO(Bounce):
                 fx_batches[col[0]] = torch.inf
 
             # Sample on the candidate points
-            # y_next = self.benchmark(cand_batch)
-            
-            # *************************************************************** #
-            # TODO: in noisy environments, how can I compare them...?
-            # best_fx = self.fx_tr.min()
             y_nexts = None
             unique_x_init = None
-            if self.noise_mode == n['NOISY_OBSERVATIONS']:
-                # Sample on the candidate points
-                # y_next = [n*BR, 1]
-                y_next = torch.concat([ 
-                    self.benchmark(cand_batch.unsqueeze(0), load=False if r > 0 else True).unsqueeze(1) 
-                    for r in range(BENCHMARKING_REPETITION)], 
-                                   dim=1)
-                # y_next = self.benchmark(cand_batch.repeat(BENCHMARKING_REPETITION, 1)) # [n*BR, 1]
+
+            # elif self.noise_mode == n['NOISE_MEAN']:
+            # _fx = self.benchmark(x_init_up[_].unsqueeze(0), repeat=BENCHMARKING_REPETITION)
+            y_nexts = self.benchmark(cand_batch.unsqueeze(0), repeat=BENCHMARKING_REPETITION)
+            # y_nexts = torch.concat([ 
+            #     self.benchmark(cand_batch.unsqueeze(0), load=False if r > 0 else True).unsqueeze(1) 
+            #     for r in range(BENCHMARKING_REPETITION)], 
+            #                     dim=1).to(self.device)
+            # y_nexts = torch.concat([self.benchmark(cand_batch).unsqueeze(1) for _ in range(BENCHMARKING_REPETITION)], dim=1)
+            # y_nexts = torch.concat(y_nexts, dim=1)
+            y_next = y_nexts.mean(1)
             
-                min_y_next = get_best_fx(
-                    model=model,
-                    xs=torch.concat(xs_low_dim),
-                    effective=self.effective
-                    )
-                
-                min_y_next = -min_y_next * std + mean # NOTE!! This is correct to insert minus at min_y_next!!!
-                
-                # model.eval()
-                # model.likelihood.eval()
-                ''' ** NOTE that **
-                    xs_low_dim is a lower dimension version of cand_batch
-                    xs_high_dim is equal to cand_batch
-                '''
-                # min_y_next = torch.min(-model.posterior(torch.vstack(xs_low_dim)).mean * std + mean) # [1, 1]
-
-                best_x = get_best_x(
-                    model=model,
-                    xs=x_scaled,
-                    noisy=True,
-                    effective=self.effective,
-                )
-                best_fx = get_best_fx(
-                    model=model,
-                    xs=x_scaled,
-                    effective=self.effective,
-                ) 
-                best_fx = -best_fx * std + mean
-                # matches = (self.x_tr == best_x).all(dim=1)
-                matches = (x_scaled == best_x).all(dim=1)
-                best_indices = matches.nonzero(as_tuple=True)[0]
-                
-                # model.eval()
-                # model.likelihood.eval()
-                # pred_fx_by_gp = - model.posterior(x_scaled).mean * std + mean
-                # best_idx = (pred_fx_by_gp).argmin()
-                # #######################################
-                # best_pred_fx_by_gp = pred_fx_by_gp[best_idx]
-                # # best_gp_fx = (- model.posterior(x_scaled).mean * std + mean).min()
-                
-                # # matches = (self.x_tr == self.x_tr[best_idx]).all(dim=1)
-                # # best_indices = matches.nonzero(as_tuple=True)[0]
-                # matches = (self.x_tr == self.x_tr[best_idx]).all(dim=1)
-                # best_indices = matches.nonzero(as_tuple=True)[0]
-                
-                if len(best_indices) > BENCHMARKING_REPETITION:
-                     cnt = len(best_indices) // BENCHMARKING_REPETITION
-                     tmp_idx = torch.randint(cnt, (1,))
-                     best_indices = best_indices[tmp_idx*BENCHMARKING_REPETITION:tmp_idx*BENCHMARKING_REPETITION+BENCHMARKING_REPETITION]
-                best_real_fxs = self.fx_tr[best_indices]
-                
-                ''' NOTE:
-                        min_y_next : the min value from repeated results of a candidate.
-                        best_pred_fx_by_gp : the best value chosen from predictions, which are posterior means of the GP model, except a current candidate
-                        best_real_fxs : the observed results of the best x, which are benchmarked repeatedly.
-                '''
-                #######################################
-                # tr_state['best_fx_from_poster_mean'] = best_fx if best_fx.dim() > 0 else best_fx.unsqueeze(0)
-                # logging.info(best_real_fxs)
-                tr_state['best_fx_from_poster_mean'] = best_real_fxs.unsqueeze(0)
-                # best_fx = best_pred_fx_by_gp               
-                
-                if min_y_next < best_fx:
-                    logging.info(
-                        # f"✨ Iteration {self._n_evals}: {BColors.OKGREEN}New incumbent function value {y_next.min().item():.3f}{BColors.ENDC}"
-                        f"✨ Iteration {self._n_evals}: {BColors.OKGREEN}New incumbent function value {min_y_next.item():.3f}{BColors.ENDC} with {best_real_fxs}"
-                    )
-                else:
-                    logging.info(
-                        f"🚀 Iteration {self._n_evals}: No improvement. Best function value {best_fx.item():.3f} with {best_real_fxs}"
-                    )
-                
-                xs_low_dim = xs_low_dim * BENCHMARKING_REPETITION
-                xs_high_dim = xs_high_dim * BENCHMARKING_REPETITION
-                    
-            elif self.noise_mode == n['NOISE_FREE_REPEATED_BENCHMARKING']:
-                y_nexts = torch.concat([ 
-                    self.benchmark(cand_batch.unsqueeze(0), load=False if r > 0 else True).unsqueeze(1) 
-                    for r in range(BENCHMARKING_REPETITION)], 
-                                   dim=1)
-                # y_nexts = torch.concat([self.benchmark(cand_batch).unsqueeze(1) for _ in range(BENCHMARKING_REPETITION)], dim=1)
-                # y_nexts = torch.concat(y_nexts, dim=1)
-                y_next = y_nexts.mean(1)
-                
-                best_idx = y_next.argmin()
-                min_y_next = y_next[best_idx]
-                min_y_nexts = y_nexts[best_idx]
-                # min_y_next = torch.min(y_next)
-                
-                best_fx_idx = self.fx_tr.argmin()
-                best_fx = self.fx_tr[best_fx_idx]
-                best_fxs = self.fx_repeated[best_fx_idx]
-                # best_fx = self.fx_tr.min()
-
-                if min_y_next < best_fx:
-                    logging.info(
-                        # f"✨ Iteration {self._n_evals}: {BColors.OKGREEN}New incumbent function value {y_next.min().item():.3f}{BColors.ENDC}"
-                        f"✨ Iteration {self._n_evals}: {BColors.OKGREEN}New incumbent function value {min_y_next.item():.3f}{BColors.ENDC} with {min_y_nexts}"
-                    )
-                else:
-                    logging.info(
-                        f"🚀 Iteration {self._n_evals}: No improvement. Best function value {best_fx.item():.3f} with {best_fxs}"
-                    )
-            elif self.noise_mode == n["NOISE_FREE_REPEATED_EXPERIMENTS"]:
-                # Sample on the candidate points
-                y_next = self.benchmark(cand_batch)
-                min_y_next = torch.min(y_next)
-                best_fx = self.fx_tr.min()
-                
-                if min_y_next < best_fx:
-                    logging.info(
-                        # f"✨ Iteration {self._n_evals}: {BColors.OKGREEN}New incumbent function value {y_next.min().item():.3f}{BColors.ENDC}"
-                        f"✨ Iteration {self._n_evals}: {BColors.OKGREEN}New incumbent function value {min_y_next.item():.3f}{BColors.ENDC}"
-                    )
-                else:
-                    logging.info(
-                        f"🚀 Iteration {self._n_evals}: No improvement. Best function value {best_fx.item():.3f}"
-                    )
-            elif self.noise_mode == n["ADAPTIVE_NOISE"]:
-                # Sample on the candidate points
-                y_nexts = torch.concat([ 
-                    self.benchmark(cand_batch.unsqueeze(0), load=False if r > 0 else True).unsqueeze(1) 
-                    for r in range(BENCHMARKING_REPETITION)], 
-                                   dim=1)
-                unique_x_init = cand_batch.clone()
-                
-                model.eval()
-                model.likelihood.eval()
-                ''' ** NOTE that **
-                    xs_low_dim is a lower dimension version of cand_batch
-                    xs_high_dim is equal to cand_batch
-                '''
-                # min_y_next = torch.min(-model.posterior(torch.vstack(xs_low_dim)).mean * std + mean) # [1, 1]
-                min_y_next = get_best_fx(
-                    model=model,
-                    xs=torch.concat(xs_low_dim),
-                    effective=self.effective
-                    )
-                
-                min_y_next = -min_y_next * std + mean
+            model.eval()
+            model.likelihood.eval()
+            
+            min_y_next = torch.min(-model.posterior(torch.vstack(xs_low_dim)).mean * std + mean).to(self.device) # [1, 1]
+            
+            pred_fx_by_gp = -model.posterior(x_scaled).mean * std + mean
+            best_idx = pred_fx_by_gp.argmin()
+            
+            best_pred_fx_by_gp = pred_fx_by_gp[best_idx]
+            best_real_fxs = self.fx_repeated[best_idx]
                         
-                # model.eval()
-                # model.likelihood.eval()
-                pred_fx_by_gp = - model.posterior(x_scaled).mean * std + mean
-                best_idx = (pred_fx_by_gp).argmin()
-                #######################################
-                best_pred_fx_by_gp = pred_fx_by_gp[best_idx]
-                # best_gp_fx = (- model.posterior(x_scaled).mean * std + mean).min()
-                
-                # matches = (self.x_tr == self.x_tr[best_idx]).all(dim=1)
-                matches = (self.x_repeated == self.x_up_tr[best_idx]).all(dim=1)
-                best_indices = matches.nonzero(as_tuple=True)[0]
+            tr_state['best_fx_from_poster_mean'] = best_real_fxs.unsqueeze(0) if best_real_fxs.dim() == 1 else best_real_fxs
+            best_fx = best_pred_fx_by_gp
 
-                if len(best_indices) > 1:
-                     tmp_idx = torch.randint(len(best_indices), (1,))
-                     best_indices = best_indices[tmp_idx]
-
-                best_real_fxs = self.fx_repeated[best_indices]
-                # best_real_fxs = self.fx_tr[best_indices]
-                ''' NOTE:
-                        min_y_next : the min value from repeated results of a candidate.
-                        best_pred_fx_by_gp : the best value chosen from predictions, which are posterior means of the GP model, except a current candidate
-                        best_real_fxs : the observed results of the best x, which are benchmarked repeatedly.
-                '''
-                #######################################
-                # tr_state['best_fx_from_poster_mean'] = best_fx if best_fx.dim() > 0 else best_fx.unsqueeze(0)
-                # logging.info(best_real_fxs)
-                tr_state['best_fx_from_poster_mean'] = best_real_fxs.unsqueeze(0) if best_real_fxs.dim() == 1 else best_real_fxs
-                best_fx = best_pred_fx_by_gp               
+            if min_y_next < best_fx:
+                logging.info(
+                    # f"✨ Iteration {self._n_evals}: {BColors.OKGREEN}New incumbent function value {y_next.min().item():.3f}{BColors.ENDC}"
+                    f"[✨ Iteration {self._n_evals}] New incumbent function value {min_y_next.item():.3f}{BColors.ENDC} with {best_real_fxs}"
+                )
+            else:
+                logging.info(
+                    f"[🚀 Iteration {self._n_evals}] No improvement. Best function value {best_fx.item():.3f} with {best_real_fxs}"
+                )
                 
-                if min_y_next < best_fx:
-                    logging.info(
-                        # f"✨ Iteration {self._n_evals}: {BColors.OKGREEN}New incumbent function value {y_next.min().item():.3f}{BColors.ENDC}"
-                        f"✨ Iteration {self._n_evals}: {BColors.OKGREEN}New incumbent function value {min_y_next.item():.3f}{BColors.ENDC} with {best_real_fxs}"
-                    )
-                else:
-                    logging.info(
-                        f"🚀 Iteration {self._n_evals}: No improvement. Best function value {best_fx.item():.3f} with {best_real_fxs}"
-                    )                
-                
-                y_std = torch.std(y_nexts)
-                
-                if y_std > self.noise_threshold:
-                    logging.info(f"[CANDIDATE EVALUATION] {y_std} > {self.noise_threshold} --> 🔼 HIGH NOISE")
-                    y_next = y_nexts.clone()
-                    xs_low_dim = xs_low_dim * BENCHMARKING_REPETITION
-                    xs_high_dim = xs_high_dim * BENCHMARKING_REPETITION
-                else:
-                    logging.info(f"[CANDIDATE EVALUATION] {y_std} <= {self.noise_threshold} --> 🔽 LOW NOISE")
-                    y_next = y_nexts.mean()
-            
-                logging.info(f"⭐ {len(xs_low_dim)} | {len(xs_high_dim)} | {y_nexts} | {y_next}")
-            elif self.noise_mode == n['NOISE_MEAN']:
-                y_nexts = torch.concat([ 
-                    self.benchmark(cand_batch.unsqueeze(0), load=False if r > 0 else True).unsqueeze(1) 
-                    for r in range(BENCHMARKING_REPETITION)], 
-                                   dim=1)
-                # y_nexts = torch.concat([self.benchmark(cand_batch).unsqueeze(1) for _ in range(BENCHMARKING_REPETITION)], dim=1)
-                # y_nexts = torch.concat(y_nexts, dim=1)
-                y_next = y_nexts.mean(1)
-                
-                model.eval()
-                model.likelihood.eval()
-                
-                min_y_next = torch.min(-model.posterior(torch.vstack(xs_low_dim)).mean * std + mean) # [1, 1]
-                
-                pred_fx_by_gp = -model.posterior(x_scaled).mean * std + mean
-                best_idx = pred_fx_by_gp.argmin()
-                
-                best_pred_fx_by_gp = pred_fx_by_gp[best_idx]
-                best_real_fxs = self.fx_repeated[best_idx]
-                
-                # logging.info(best_real_fxs)
-                
-                tr_state['best_fx_from_poster_mean'] = best_real_fxs.unsqueeze(0) if best_real_fxs.dim() == 1 else best_real_fxs
-                best_fx = best_pred_fx_by_gp
-                # best_idx = y_next.argmin()
-                # min_y_next = y_next[best_idx]
-                # min_y_nexts = y_nexts[best_idx]
-                # min_y_next = torch.min(y_next)
-                
-                # best_fx_idx = self.fx_tr.argmin()
-                # best_fx = self.fx_tr[best_fx_idx]
-                # best_fxs = self.fx_repeated[best_fx_idx]
-                # best_fx = self.fx_tr.min()
-
-                if min_y_next < best_fx:
-                    logging.info(
-                        # f"✨ Iteration {self._n_evals}: {BColors.OKGREEN}New incumbent function value {y_next.min().item():.3f}{BColors.ENDC}"
-                        f"✨ Iteration {self._n_evals}: {BColors.OKGREEN}New incumbent function value {min_y_next.item():.3f}{BColors.ENDC} with {best_real_fxs}"
-                    )
-                else:
-                    logging.info(
-                        f"🚀 Iteration {self._n_evals}: No improvement. Best function value {best_fx.item():.3f} with {best_real_fxs}"
-                    )
             self.save_tr_state(tr_state)    
             
             # if torch.min(y_next) < best_fx:
@@ -782,22 +490,23 @@ class NSBO(Bounce):
                     )
                 else:
                     # Full dim is reached
-                    logging.info(
-                        f"🏁 Reached full dimensionality. Restarting with new random samples."
-                    )
-                    self.split_budget = self._split_budget(
-                        self.random_embedding.input_dim
-                    )
-                    # Reset the last split budget
-                    self._all_split_budgets[self._forecasted_tr_dim] = self.split_budget
+                    logging.info("🏁 Finished")
+                    # logging.info(
+                    #     f"🏁 Reached full dimensionality. Restarting with new random samples."
+                    # )
+                    # self.split_budget = self._split_budget(
+                    #     self.random_embedding.input_dim
+                    # )
+                    # # Reset the last split budget
+                    # self._all_split_budgets[self._forecasted_tr_dim] = self.split_budget
 
-                    # empty tr data, does not delete the global data
-                    self._reset_local_data()
+                    # # empty tr data, does not delete the global data
+                    # self._reset_local_data()
 
-                    # reset the trust region
-                    self.trust_region.reset()
+                    # # reset the trust region
+                    # self.trust_region.reset()
 
-                    self.sample_init()
+                    # self.sample_init()
             with lzma.open(os.path.join(self.results_dir, f"results.csv.xz"), "w") as f:
                 np.savetxt(
                     f,
@@ -819,7 +528,7 @@ class NSBO(Bounce):
 
         # self.benchmark.env.calculate_improvement_from_default(best_fx=best_fx)
         
-        self.get_best_solution(model=model)
+        self.get_best_solution(model=model)        
         
     def get_best_solution(self, model):
         logging.info(f"✨✨✨ Evaluating best x... # of repetitions = {BENCHMARKING_REPETITION} ✨✨✨")
@@ -830,14 +539,26 @@ class NSBO(Bounce):
         model.likelihood.eval()
         
         best_x = self.x_up_tr[model.posterior(x_scaled).mean.argmax(), :]
-        
-        best_ys = []
-        for _ in range(BENCHMARKING_REPETITION):
-            best_y = self.benchmark(best_x.unsqueeze(0), load=True if _==0 else False)
-            best_ys.append(best_y.item())
+
+        best_ys = self.benchmark(best_x.unsqueeze(0), repeat=BENCHMARKING_REPETITION)
+        best_ys = best_ys.flatten().cpu().numpy()
+
+        # best_ys = []
+
+        # for _ in range(BENCHMARKING_REPETITION):
+        #     best_y = self.benchmark(best_x.unsqueeze(0), load=True if _==0 else False)
+        #     best_ys.append(best_y.item())
         
         from statistics import mean, stdev
         logging.info(f"Results = {best_ys} , Mean = {mean(best_ys):.3f} (±{stdev(best_ys):.3f})")
+        
+        f = open(CONF_PATH, 'r')
+        best_config = f.readlines() 
+        logging.info(".....Best Configuration.....")
+        logging.info(''.join(best_config))
+        # for l in best_config:
+        #     logging.info(l)
+        logging.info("......................")
         
     def _add_data_to_tr_observations(
         self,
