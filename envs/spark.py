@@ -10,7 +10,7 @@ class SparkEnv:
     def __init__(
         self,
         csv_path: str = p.SPARK_CONF_INFO_CSV_PATH,
-        config_path: str = p.SPARK_CONF_PATH,
+        config_path: str = p.CONF_PATH,
         workload: str = None,
         workload_size: str = None,
         alter: bool = True,
@@ -155,31 +155,31 @@ class SparkEnv:
             else:
                 logging.info("🎉Successfully cleaning Spark Storage")
     
-    # Get the result of default configuration..
-    def _get_result_from_default_configuration(self): 
-        logging.info("💻Benchmarking the default configuration...")
-        # This default configuration occurs an error in benchmarking
-        self.apply_configuration(config_path=p.SPARK_DEFAULT_CONF_PATH)
+    # # Get the result of default configuration..
+    # def _get_result_from_default_configuration(self): 
+    #     logging.info("💻Benchmarking the default configuration...")
+    #     # This default configuration occurs an error in benchmarking
+    #     self.apply_configuration(config_path=p.SPARK_DEFAULT_CONF_PATH)
         
-        res_ = []
-        for _ in range(p.BENCHMARKING_REPETITION):
-            self.run_configuration()
-            res_.append(self.get_results())
+    #     res_ = []
+    #     for _ in range(p.BENCHMARKING_REPETITION):
+    #         self.run_configuration()
+    #         res_.append(self.get_results())
             
-        self.def_res = mean(res_)
-        logging.info(f"Default duration (s) is {self.def_res}")
+    #     self.def_res = mean(res_)
+    #     logging.info(f"Default duration (s) is {self.def_res}")
     
-    def calculate_improvement_from_default(self, best_fx):
-        # default_fx = self._get_result_from_default_configuration()
-        default_fx = self.def_res
-        if isinstance(best_fx, torch.Tensor):
-            best_fx = best_fx.item()
+    # def calculate_improvement_from_default(self, best_fx):
+    #     # default_fx = self._get_result_from_default_configuration()
+    #     default_fx = self.def_res
+    #     if isinstance(best_fx, torch.Tensor):
+    #         best_fx = best_fx.item()
             
-        improve_ratio = round((default_fx - best_fx)/default_fx * 100, 2)
-        logging.info("=============================================================")
-        logging.info(f"🎯 Improvement rate from default results.. {improve_ratio}%")
-        logging.info(f"Default result is {default_fx} and Best result is {best_fx}")
-        logging.info("=============================================================")
+    #     improve_ratio = round((default_fx - best_fx)/default_fx * 100, 2)
+    #     logging.info("=============================================================")
+    #     logging.info(f"🎯 Improvement rate from default results.. {improve_ratio}%")
+    #     logging.info(f"Default result is {default_fx} and Best result is {best_fx}")
+    #     logging.info("=============================================================")
         
     def start_dataproc(self):
         if self.debugging:
