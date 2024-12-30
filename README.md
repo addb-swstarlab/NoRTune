@@ -1,5 +1,5 @@
 ![python version](https://img.shields.io/badge/python-3.10-blue)
-
+  
 # NoRTune
 We introduce NoRTune, a resource-efficient and reliable configuration tuning framework for Spark that leverages subspace-based Bayesian optimization and a noise-robust acquisition function. NoRTune optimizes Spark configuration by effectively reducing high-dimensional parameters without requiring time-consuming and resource-intensive determination of the target dimensionality. Moreover, it is able to select an optimal configuration with reliable performance by reducing the impact of noise.
 
@@ -14,7 +14,7 @@ To install the dependencies, run
 
 ```bash
 poetry install
-pip install configspace
+pip install configspace==0.6.1
 ```
 
 ## Dependencies
