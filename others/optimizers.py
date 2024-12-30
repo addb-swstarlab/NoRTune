@@ -24,6 +24,7 @@ class Baselines:
         rand_percentage: float = 0.1,
         n_estimators: int = 100,
         acquisition_function: str = 'ei',
+        is_tps: bool = False,
     ):
         self.embedding_method = embedding_method
         self.optimizer_method = optimizer_method
@@ -32,6 +33,7 @@ class Baselines:
         self.n_estimators = n_estimators
         self.input_space = self.benchmark.input_space
         self.acquisition_function = acquisition_function
+        self.is_tps = is_tps
         
         self._init_observations()
         self._set_result_dir()
@@ -108,10 +110,9 @@ class Baselines:
 
 
     def target_function(self, x: Configuration, seed: int=0) -> float:
-        r_fx = []
-        for _ in range(p.BENCHMARKING_REPETITION):
-            fx = self.benchmark.evaluate(x, seed=seed, load=True if _ == 0 else False)
-            r_fx.append(fx)
+        r_fx = self.benchmark.evaluate(x, seed=seed, load=True, repeat=self.repeat)
+        if self.is_tps:
+            r_fx = -r_fx
         mean_fx = mean(r_fx)
 
         self.add_observation(x, mean_fx, r_fx)
@@ -121,7 +122,7 @@ class Baselines:
             logging.info(f"🔔 Best result is updated!! : {self.best_res:.3f} --> {mean_fx:.3f}")
             self.best_res = mean_fx
             
-            f = open(p.SPARK_CONF_PATH, 'r')
+            f = open(p.CONF_PATH, 'r')
             self.best_config = f.readlines()
             self.best_x = x
         else:    
@@ -152,10 +153,13 @@ class Baselines:
         self._save_observations_to_json()
         
         logging.info(f"✨✨✨ Evaluating best x... # of repetitions = {p.BENCHMARKING_REPETITION} ✨✨✨")
-        best_ys = []
-        for _ in range(p.BENCHMARKING_REPETITION):
-            best_y = self.benchmark.evaluate(self.best_x, load=True if _ == 0 else False)
-            best_ys.append(best_y)
+        
+        best_ys = self.benchmark.evaluate(self.best_x, load=True, repeat=p.BENCHMARKING_REPETITION)
+        
+        # best_ys = []
+        # for _ in range(p.BENCHMARKING_REPETITION):
+        #     best_y = self.benchmark.evaluate(self.best_x, load=True if _ == 0 else False)
+        #     best_ys.append(best_y)
         logging.info(f"Results = {best_ys} , Mean = {mean(best_ys):.3f} (±{stdev(best_ys):.3f})")
         
     def _save_observations_to_json(self):
