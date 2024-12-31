@@ -8,6 +8,7 @@
 *.conf
 *.csv
 envs/gcp_info.py
+envs/server_info.py
 */results/
 /logs/
 *.ipynb
