@@ -8,6 +8,8 @@ import ConfigSpace.hyperparameters as CSH
 import numpy as np
 from sklearn.preprocessing import MinMaxScaler
 
+from others.adapters.bias_sampling import UniformIntegerHyperparameterWithSpecialValue, special_value_scaler
+
 import logging
 logger = logging.getLogger(__name__)
 
@@ -16,7 +18,7 @@ class LinearEmbeddingConfigSpace(ABC):
             adaptee: CS.ConfigurationSpace, 
             target_dim: int, 
             seed: int = 0,
-            # bias_prob_sv: Optional[float] = None, # biased-sampling
+            bias_prob_sv: Optional[float] = None, # biased-sampling
             max_num_values: Optional[int] = None, # quantization
             ):
 
@@ -24,7 +26,7 @@ class LinearEmbeddingConfigSpace(ABC):
         self._target: CS.ConfigurationSpace = None
         self._seed: int = seed
         self._target_dim: int = target_dim
-        # self._bias_prob_sv: Optional[float] = bias_prob_sv
+        self._bias_prob_sv: Optional[float] = bias_prob_sv
         self._max_num_values: Optional[int] = max_num_values
 
         self._rs = np.random.RandomState(seed=self._seed)
@@ -155,8 +157,8 @@ class REMBOConfigSpace(LinearEmbeddingConfigSpace):
                 # NOTE: rounding here would be unfair to first & last values
                 value = hp.choices[index]
             elif isinstance(hp, CS.hyperparameters.NumericalHyperparameter):
-                # if isinstance(hp, UniformIntegerHyperparameterWithSpecialValue):
-                #     value = special_value_scaler(hp, value) # bias special value
+                if isinstance(hp, UniformIntegerHyperparameterWithSpecialValue):
+                    value = special_value_scaler(hp, value) # bias special value
 
                 value = hp._transform(value)
                 value = max(hp.lower, min(hp.upper, value))
@@ -246,8 +248,8 @@ class HesBOConfigSpace(LinearEmbeddingConfigSpace):
                 # NOTE: rounding here would be unfair to first & last values
                 value = hp.choices[index]
             elif isinstance(hp, CS.hyperparameters.NumericalHyperparameter):
-                # if isinstance(hp, UniformIntegerHyperparameterWithSpecialValue):
-                #     value = special_value_scaler(hp, value) # bias special value
+                if isinstance(hp, UniformIntegerHyperparameterWithSpecialValue):
+                    value = special_value_scaler(hp, value) # bias special value
 
                 value = hp._transform(value)
                 value = max(hp.lower, min(hp.upper, value))
