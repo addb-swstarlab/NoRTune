@@ -110,9 +110,9 @@ class Baselines:
 
 
     def target_function(self, x: Configuration, seed: int=0) -> float:
-        r_fx = self.benchmark.evaluate(x, seed=seed, load=True, repeat=self.repeat)
+        r_fx = self.benchmark.evaluate(x, seed=seed, load=True, repeat=p.BENCHMARKING_REPETITION)
         if self.is_tps:
-            r_fx = -r_fx
+            r_fx = list(map(lambda x: x * -1, r_fx))
         mean_fx = mean(r_fx)
 
         self.add_observation(x, mean_fx, r_fx)
