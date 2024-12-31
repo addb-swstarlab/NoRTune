@@ -3,6 +3,7 @@ from ConfigSpace import Configuration, ConfigurationSpace
 from random_search.benchmarks import SparkBench, PostgresBench
 from others.adapters.low_embeddings import LinearEmbeddingConfigSpace
 from envs.params import BENCHMARKING_REPETITION
+from others.adapters.bias_sampling import PostgresBiasSampling
 
 class Benchmark(SparkBench):
     def __init__(
@@ -43,7 +44,9 @@ class Benchmark(SparkBench):
         
     
     # def evaluate(self, sample: Configuration, load: bool, seed: int = 0) -> float:
-    def evaluate(self, sample: Configuration, load: bool, repeat:bool=False, seed: int = 0) -> float:
+    def evaluate(self, sample: Configuration, load: bool, repeat:int, seed: int = 0) -> float:
+        repeat = True if repeat == BENCHMARKING_REPETITION else False
+        
         if self.embed_adapter_alias in ['rembo', 'hesbo']:
             sample = self.embedding_adapter.unproject_point(sample)
         
@@ -74,16 +77,26 @@ class PostgresBenchmark(PostgresBench):
         # alter: bool = True,
         debugging: bool = False,
         quantization_factor: int = None,
+        bias_prob_sv: int = None, # biased sampling
     ):
+        '''
+            This is for LlamaTune on PostgreSQL
+        '''
         self.embed_adapter_alias = embed_adapter_alias
         self.target_dim = target_dim
         self._quantization_factor = quantization_factor
+        self._bias_prob_sv = bias_prob_sv
         
         assert self.embed_adapter_alias in ['rembo', 'hesbo', 'ddpg', 'none'], "embed_adapter_alias should be defined to 'rembo', 'hesbo', or 'ddpg'."
         
         super().__init__(workload=workload, debugging=debugging)
 
         self.input_space: ConfigurationSpace = self.cs
+        
+        if self._bias_prob_sv is not None:
+            self.input_space = PostgresBiasSampling(
+                self.input_space, seed=0, bias_prob_sv=0.2
+            )
         
         if self.embed_adapter_alias in ['rembo', 'hesbo']:
             self.input_space = self._get_embedding_space(self.embed_adapter_alias)
@@ -97,17 +110,30 @@ class PostgresBenchmark(PostgresBench):
             method=self.embed_adapter_alias,
             seed=0,
             max_num_values=self._quantization_factor,
+            bias_prob_sv=self._bias_prob_sv
         )
         
         return self.embedding_adapter.target
         
-    
-    def evaluate(self, sample: Configuration, load: bool, seed: int = 0) -> float:
+    def evaluate(self, sample: Configuration, load: bool, repeat:int, seed: int = 0) -> float:
+        repeat = True if repeat == BENCHMARKING_REPETITION else False
+        
         if self.embed_adapter_alias in ['rembo', 'hesbo']:
             sample = self.embedding_adapter.unproject_point(sample)
         
         self.save_configuration_file(sample)
-        self.apply_and_run_configuration(load)
-
-        res = self.get_results()
-        return res
+    
+        if repeat:
+            res = []
+            self.apply_configuration()
+            for _ in range(BENCHMARKING_REPETITION):
+                self.run_configuration(load)
+                res_ = self.get_results()
+                res.append(res_)
+                load = False
+        else:
+            self.apply_and_run_configuration(load)
+            res = self.get_results()
+            res = list(res)
+            
+        return res # [3] or [1]    
