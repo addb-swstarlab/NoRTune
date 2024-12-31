@@ -169,7 +169,12 @@ class NSBO(Bounce):
             lb=self.benchmark.lb_vec,
             ub=self.benchmark.ub_vec,
         )
-        
+        # print(x_init.shape)
+        print("######################################")
+        print(x_init_up.shape)
+        print(x_init_up[0])
+        print(self.random_embedding.parameters)
+        assert False
         fx_inits = None
         unique_x_init = None
         
